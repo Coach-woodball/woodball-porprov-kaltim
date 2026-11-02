@@ -101,20 +101,46 @@
     if (msg) App.toast(msg);
   };
 
-  App.login = () => {
+  // Dialog isian di dalam halaman (pengganti prompt(), yang diblokir di sebagian browser/webview).
+  // fields: [{label, type}] -> Promise<string[] | null> (null = dibatalkan).
+  App.dialog = ({ title, text, fields, ok = 'OK' }) => new Promise((resolve) => {
+    const el = document.createElement('div');
+    el.className = 'dlg-overlay';
+    el.innerHTML = `<form class="dlg glass" autocomplete="off"><h3>${App.esc(title)}</h3>${text ? `<p class="muted">${App.esc(text)}</p>` : ''}
+      ${fields.map((f, i) => `<label>${App.esc(f.label)}<input name="f${i}" type="${f.type || 'text'}" ${f.type === 'password' ? 'inputmode="numeric"' : ''}></label>`).join('')}
+      <div class="row gap dlg-foot"><button type="button" class="btn ghost" data-cancel>Batal</button><button class="btn">${App.esc(ok)}</button></div></form>`;
+    document.body.appendChild(el);
+    const form = el.querySelector('form');
+    const close = (val) => { el.remove(); document.removeEventListener('keydown', onKey); resolve(val); };
+    const onKey = (e) => { if (e.key === 'Escape') close(null); };
+    document.addEventListener('keydown', onKey);
+    form.addEventListener('submit', (e) => { e.preventDefault(); close(fields.map((_, i) => form[`f${i}`].value)); });
+    el.querySelector('[data-cancel]').addEventListener('click', () => close(null));
+    el.addEventListener('mousedown', (e) => { if (e.target === el) close(null); });
+    setTimeout(() => form.f0.focus(), 30);
+  });
+
+  // Buat PIN baru (dua kali ketik). Mengembalikan hash PIN atau null.
+  App.newPin = async (title) => {
+    const v = await App.dialog({ title, text: 'Minimal 4 karakter. Simpan PIN ini baik-baik.', ok: 'Simpan PIN',
+      fields: [{ label: 'PIN baru', type: 'password' }, { label: 'Ulangi PIN', type: 'password' }] });
+    if (!v) return null;
+    if (v[0].length < 4) { App.toast('PIN minimal 4 karakter', 'err'); return null; }
+    if (v[0] !== v[1]) { App.toast('PIN tidak sama', 'err'); return null; }
+    return App.hash(v[0]);
+  };
+
+  App.login = async () => {
     const A = App.S.admin;
     if (!A.pinHash) {
-      const p1 = prompt('Belum ada PIN admin. Buat PIN baru (minimal 4 karakter):');
-      if (!p1) return;
-      if (p1.length < 4) return App.toast('PIN minimal 4 karakter', 'err');
-      const p2 = prompt('Ulangi PIN:');
-      if (p1 !== p2) return App.toast('PIN tidak sama', 'err');
-      A.pinHash = App.hash(p1);
+      const h = await App.newPin('Belum ada PIN admin, buat PIN baru');
+      if (!h) return;
+      A.pinHash = h;
       App.save(true);
     } else {
-      const p = prompt('Masukkan PIN admin:');
-      if (p === null) return;
-      if (App.hash(p) !== A.pinHash) return App.toast('PIN salah', 'err');
+      const v = await App.dialog({ title: 'Masuk Admin', fields: [{ label: 'PIN admin', type: 'password' }], ok: 'Masuk' });
+      if (!v) return;
+      if (App.hash(v[0]) !== A.pinHash) return App.toast('PIN salah', 'err');
     }
     sessionStorage.setItem('wb-admin', '1');
     App.toast('Mode admin aktif');

@@ -85,12 +85,10 @@
       }));
       root.querySelector('#signer-add').addEventListener('click', () => { App.S.event.signers.push({ title: '', name: '' }); App.commit(); });
       root.querySelectorAll('[data-signer-del]').forEach((b) => b.addEventListener('click', () => { App.S.event.signers.splice(+b.dataset.signerDel, 1); App.commit(); }));
-      root.querySelector('#pin-change').addEventListener('click', () => {
-        const p1 = prompt('PIN baru (minimal 4 karakter):');
-        if (!p1) return;
-        if (p1.length < 4) return App.toast('PIN minimal 4 karakter', 'err');
-        if (prompt('Ulangi PIN baru:') !== p1) return App.toast('PIN tidak sama', 'err');
-        App.S.admin.pinHash = App.hash(p1);
+      root.querySelector('#pin-change').addEventListener('click', async () => {
+        const h = await App.newPin('Ganti PIN admin');
+        if (!h) return;
+        App.S.admin.pinHash = h;
         App.commit('PIN diganti');
       });
     },
@@ -148,7 +146,8 @@
       });
       root.querySelector('#bk-demo').addEventListener('click', () => { App.demoData(); App.commit('Data contoh dibuat'); });
       root.querySelector('#bk-reset').addEventListener('click', async () => {
-        if (prompt('Ketik HAPUS untuk menghapus semua data:') !== 'HAPUS') return;
+        const v = await App.dialog({ title: 'Hapus semua data', text: 'Ketik HAPUS untuk menghapus semua data.', fields: [{ label: 'Konfirmasi' }], ok: 'Hapus' });
+        if (!v || v[0].trim().toUpperCase() !== 'HAPUS') return;
         const pin = App.S.admin.pinHash;
         await App.db.clear('files');
         App.files.cache.clear();

@@ -573,3 +573,12 @@ tr.dim td { opacity: .5; }
 .ath-nm small { font-size: .74rem; }
 .page .reg-pt td.ph { width: 16mm; padding: 1px !important; text-align: center; }
 .page .reg-pt td.ph img { width: 14mm; height: 18mm; object-fit: cover; display: block; margin: auto; }
+
+/* dialog isian (PIN admin) */
+.dlg-overlay { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, .35); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); animation: dlgIn .15s ease; }
+.dlg { width: min(380px, 100%); border-radius: var(--radius); padding: 20px; display: grid; gap: 12px; background: var(--glass-strong); }
+.dlg h3 { margin: 0; }
+.dlg p { margin: 0; font-size: .88rem; }
+.dlg input { font-size: 1.1rem; letter-spacing: .2em; }
+.dlg-foot { justify-content: flex-end; margin-top: 4px; }
+@keyframes dlgIn { from { opacity: 0; } }
