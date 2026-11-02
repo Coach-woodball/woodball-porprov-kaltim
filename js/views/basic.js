@@ -63,11 +63,11 @@
       const rows = App.S.kontingen.map((k) => {
         const nA = App.S.athletes.filter((a) => a.kontingenId === k.id).length;
         return `<tr data-id="${k.id}"><td><input class="k-name" value="${esc(k.name)}"></td><td><input class="k-short" value="${esc(k.short)}" style="max-width:120px"></td>
-          <td class="c">${nA}</td><td><button class="btn sm danger k-del" ${nA ? 'disabled title="Masih ada atlet"' : ''}>Hapus</button></td></tr>`;
+          <td class="c">${nA}</td><td class="k-offs">${(k.officials || []).map((o) => `${esc(o.role)}: <b>${esc(o.name)}</b>${o.phone ? ' (' + esc(o.phone) + ')' : ''}`).join('<br>') || '-'}</td><td><button class="btn sm danger k-del" ${nA ? 'disabled title="Masih ada atlet"' : ''}>Hapus</button></td></tr>`;
       }).join('');
       return `<div class="card"><h2>${esc(App.S.menu.kontingen)} (Kab/Kota)</h2>
         <p class="muted">Nama lengkap dipakai di dokumen; singkatan dipakai di tabel & bagan.</p>
-        <div class="table-wrap"><table><thead><tr><th>Nama</th><th>Singkatan</th><th>Atlet</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Nama</th><th>Singkatan</th><th>Atlet</th><th>Official</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
         <form class="row gap" id="k-add"><input name="name" placeholder="Nama kontingen baru" required><input name="short" placeholder="Singkatan" style="max-width:140px"><button class="btn">+ Tambah</button></form>
       </div>`;
     },
@@ -111,7 +111,8 @@
   App.eventLegend = () => `<div class="legend">${App.S.events.map((ev) => `<span><b>${esc(ev.code)}</b> ${esc(ev.name)}</span>`).join('')}</div>`;
 
   function athleteForm(a) {
-    a = a || { name: '', gender: 'L', kontingenId: athFilter.k, birth: '', events: [] };
+    a = a || { name: '', gender: 'L', kontingenId: athFilter.k, birth: '', nik: '', events: [] };
+    const photo = App.files.url(a.photo);
     return `<form id="ath-form" class="card form">
       <h3>${a.id ? 'Ubah atlet' : 'Tambah atlet'}</h3>
       <div class="grid4">
@@ -119,7 +120,13 @@
         <label>Jenis kelamin<select name="gender">${App.ui.options([['L', 'Putra'], ['P', 'Putri']], a.gender)}</select></label>
         <label>Kontingen<select name="kontingenId" required>${App.ui.kontingenOptions(a.kontingenId)}</select></label>
         <label>Tanggal lahir<input type="date" name="birth" value="${esc(a.birth || '')}"><small class="muted" id="ath-age">${esc(App.ageText(a.birth))}</small></label>
+        <label>NIK<input name="nik" inputmode="numeric" maxlength="16" value="${esc(a.nik || '')}"></label>
       </div>
+      ${a.id ? `<div class="ath-media">
+        <div><div class="field-t">Pas foto</div><div class="photo-box">${photo ? `<img src="${photo}" alt="">` : 'Belum ada'}</div>
+          <div class="row gap"><label class="btn xs ghost upload">📷 Upload<input type="file" accept="image/*" id="ath-photo" hidden></label>${a.photo ? '<button type="button" class="btn xs danger" id="ath-photo-del">Hapus</button>' : ''}</div></div>
+        <div><div class="field-t">Dokumen identitas (KTP / KK / akta)</div>${App.ui.scanBlock(a.docs, 'docs', '📎 Upload dokumen')}</div>
+      </div>` : '<p class="muted small">Pas foto dan dokumen identitas bisa ditambahkan setelah atlet disimpan (klik <b>Ubah</b>).</p>'}
       <div class="field-t">Nomor yang diikuti <small class="muted">(daftar menyesuaikan jenis kelamin)</small></div>
       <div id="ath-evs" class="evpick">${evChecks(a.gender, a.events)}</div>
       <div class="row gap"><button class="btn">${a.id ? 'Simpan' : '+ Tambah'}</button>${a.id ? '<button type="button" class="btn ghost" id="ath-cancel">Batal</button>' : ''}</div>
@@ -157,7 +164,7 @@
           </div>
           <details class="legend-wrap"><summary class="muted small">Arti kode nomor</summary>${App.eventLegend()}</details>
           <div class="table-wrap"><table><thead><tr><th>#</th><th>Nama</th><th>L/P</th><th>Kontingen</th><th>Tgl lahir</th><th title="Dihitung per ${esc(App.fmtDate(S.event.dateStart))} (hari pertama pertandingan)">Umur <small>per ${esc(App.fmtDate(S.event.dateStart))}</small></th><th>Daftar nomor</th><th>Masuk entri</th><th></th></tr></thead><tbody>
-          ${list.map((a, i) => `<tr><td class="c">${i + 1}</td><td>${esc(a.name)}</td><td class="c">${a.gender}</td><td>${esc(App.kShort(a.kontingenId))}</td>
+          ${list.map((a, i) => `<tr><td class="c">${i + 1}</td><td class="nowrap">${App.files.url(a.photo) ? `<img class="ath-thumb" src="${App.files.url(a.photo)}" alt="">` : ''}<span class="ath-nm">${esc(a.name)}${a.nik || (a.docs || []).length ? `<small class="muted">${a.nik ? 'NIK ' + esc(a.nik) : ''}${(a.docs || []).length ? ' · 📄 ' + a.docs.length : ''}</small>` : ''}</span></td><td class="c">${a.gender}</td><td>${esc(App.kShort(a.kontingenId))}</td>
             <td class="nowrap">${esc(a.birth ? App.fmtDate(a.birth) : '-')}</td><td class="nowrap small">${esc(App.ageText(a.birth) || '-')}</td><td>${(a.events || []).map(App.event).filter(Boolean).map((ev) => `<span class="code" title="${esc(ev.name)}">${esc(ev.code)}</span>`).join(' ')}</td>
             <td>${(inEntries[a.id] || []).map((c) => `<span class="code" title="${esc((App.S.events.find((ev) => ev.code === c) || {}).name || '')}">${esc(c)}</span>`).join(' ')}</td>
             <td class="nowrap"><button class="btn sm ghost" data-edit="${a.id}">Ubah</button> <button class="btn sm danger" data-del="${a.id}">Hapus</button></td></tr>`).join('') || `<tr><td colspan="9">${App.ui.empty('Belum ada atlet.')}</td></tr>`}
@@ -174,13 +181,25 @@
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         const f = new FormData(form);
-        const data = { name: f.get('name').trim(), gender: f.get('gender'), kontingenId: f.get('kontingenId'), birth: f.get('birth'), events: f.getAll('ev') };
+        const data = { name: f.get('name').trim(), gender: f.get('gender'), kontingenId: f.get('kontingenId'), birth: f.get('birth'), nik: (f.get('nik') || '').replace(/\D/g, ''), events: f.getAll('ev') };
         if (editId) Object.assign(App.athlete(editId), data);
         else App.S.athletes.push({ id: App.uid('a_'), ...data });
         athFilter.k = data.kontingenId;
         editId = null;
         App.commit('Atlet tersimpan');
       });
+      const cur = editId && App.athlete(editId);
+      if (cur) {
+        App.bindScans(root, () => (cur.docs = cur.docs || []));
+        root.querySelector('#ath-photo').addEventListener('change', async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const url = await App.compressImage(await App.readFile(file), 600, 0.82);
+          cur.photo = await App.files.add(file.name, url.slice(5, url.indexOf(';')), url);
+          App.commit('Foto tersimpan');
+        });
+        root.querySelector('#ath-photo-del')?.addEventListener('click', () => { cur.photo = null; App.commit('Foto dihapus'); });
+      }
       root.querySelector('#ath-cancel')?.addEventListener('click', () => { editId = null; App.rerender(); });
       root.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => { editId = b.dataset.edit; App.rerender(); window.scrollTo(0, 0); }));
       root.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => {

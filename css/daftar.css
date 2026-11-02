@@ -1,0 +1,65 @@
+/* Formulir pendaftaran atlet (daftar.html), memakai komponen dari app.css */
+.reg-wrap { max-width: 980px; margin: 0 auto; padding: 16px 16px 60px; }
+.reg-wrap h2 { display: flex; align-items: center; gap: 10px; font-size: 1.15rem; margin: 0 0 10px; }
+.step { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; flex: none; font-size: .9rem; color: #fff; background: linear-gradient(135deg, var(--brand), var(--brand-2)); }
+
+.reg-head { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.reg-logos { display: flex; gap: 10px; align-items: center; }
+.reg-logos img { height: 64px; width: auto; max-width: 90px; object-fit: contain; }
+.reg-title { flex: 1; min-width: 220px; }
+.reg-title small { text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--accent); font-size: .75rem; }
+.reg-title h1 { font-size: 1.45rem; margin: 2px 0 4px; }
+.reg-title p { margin: 0 0 8px; }
+.reg-note { background: linear-gradient(var(--ok-bg), var(--ok-bg)), var(--glass); white-space: normal; }
+
+.off-list { display: grid; gap: 8px; margin-bottom: 10px; }
+.off-row { display: grid; grid-template-columns: 180px 1fr 190px auto; gap: 8px; align-items: center; }
+
+.ath-cards { display: grid; gap: 10px; margin-top: 10px; }
+.ath-card { display: flex; gap: 14px; align-items: flex-start; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--input); }
+.ath-photo, .photo-box { flex: none; width: 66px; height: 88px; border-radius: 10px; overflow: hidden; background: var(--soft); border: 1px dashed var(--line); display: grid; place-items: center; text-align: center; font-size: .75rem; color: var(--muted); }
+.ath-photo img, .photo-box img { width: 100%; height: 100%; object-fit: cover; }
+.ath-info { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.ath-act { display: flex; flex-direction: column; gap: 6px; }
+.reg-miss { font-size: .8rem; color: var(--red-tx); font-weight: 600; }
+.reg-warn { font-size: .8rem; color: var(--warn-tx); font-weight: 600; }
+
+.ath-editor { border: 1px solid color-mix(in srgb, var(--brand) 45%, transparent); border-radius: 16px; padding: 16px; margin-top: 6px; background: var(--glass-strong); }
+.ath-editor h3 { margin: 0 0 10px; }
+.ed-grid { display: flex; gap: 18px; align-items: flex-start; }
+.ed-photo { display: flex; flex-direction: column; gap: 6px; align-items: stretch; width: 130px; flex: none; }
+.ed-photo .photo-box { width: 130px; height: 173px; }
+.ed-fields { flex: 1; margin: 0; }
+.ath-editor .scan small { display: block; max-width: 74px; font-size: .68rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ath-editor #ed-check { margin: 4px 0 12px; }
+tr.dim td { opacity: .5; }
+.reg-probs { background: var(--warn-bg); border-radius: 12px; padding: 10px 14px; margin-bottom: 10px; font-size: .9rem; }
+.reg-probs ul { margin: 4px 0 0; padding-left: 20px; }
+.reg-steps { padding-left: 20px; line-height: 1.6; }
+.reg-more { margin-top: 14px; }
+.reg-src { margin-top: 10px; }
+
+#reg-print { display: none; }
+.reg-pt td.ph { width: 16mm; padding: 1px !important; text-align: center; }
+.reg-pt td.ph img { width: 14mm; height: 18mm; object-fit: cover; display: block; margin: auto; }
+.reg-pt td { font-size: 9.5pt !important; }
+
+@media (max-width: 640px) {
+  .reg-wrap { padding: 10px 12px 50px; }
+  .reg-logos img { height: 46px; }
+  .reg-title h1 { font-size: 1.2rem; }
+  .off-row { grid-template-columns: 1fr 1fr; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .off-row input[data-of="name"] { grid-column: 1 / -1; grid-row: 1; }
+  .ed-grid { flex-direction: column; align-items: stretch; }
+  .ed-photo { flex-direction: row; flex-wrap: wrap; width: auto; align-items: center; }
+  .ed-photo .photo-box { width: 90px; height: 120px; }
+  .ath-card { flex-wrap: wrap; }
+  .ath-act { flex-direction: row; width: 100%; justify-content: flex-end; }
+  .evgroup { flex-direction: column; gap: 4px; }
+  .evgroup-t { padding-top: 0; }
+}
+
+@media print {
+  #reg { display: none !important; }
+  #reg-print { display: block; }
+}

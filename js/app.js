@@ -7,6 +7,7 @@
     dashboard: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
     kontingen: '<path d="M5 21V4m0 0h12l-2.5 4.5L17 13H5"/>',
     athletes: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.7 3 2.5 3.5 5.2"/>',
+    registration: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14l2 2 4-4"/>',
     events: '<rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 3.5h6M9 10h6M9 14h6M9 18h3.5"/>',
     stroke: '<path d="M12 18V3l7 3.5-7 3.5"/><ellipse cx="12" cy="19" rx="7" ry="2.5"/>',
     fairway: '<path d="M4 4l7 7M4 4v4M4 4h4M20 20l-7-7M20 20v-4M20 20h-4M20 4l-6 6M4 20l6-6"/>',
@@ -31,7 +32,7 @@
   };
 
   const NAV = [
-    ['dashboard', false], ['kontingen', true], ['athletes', true], ['events', true], ['stroke', true], ['fairway', true],
+    ['dashboard', false], ['kontingen', true], ['athletes', true], ['registration', true], ['events', true], ['stroke', true], ['fairway', true],
     ['results', false], ['print', false], ['display', false], ['settings', true], ['backup', true],
   ];
 
@@ -152,7 +153,7 @@
   };
 
   // Lampiran scan lembar skor.
-  App.ui.scanBlock = (fileIds, key) => `
+  App.ui.scanBlock = (fileIds, key, label = '📎 Upload scan') => `
     <div class="scans">
       ${(fileIds || []).map((id) => {
         const f = App.files.get(id);
@@ -160,7 +161,7 @@
         const thumb = f.type.startsWith('image/') ? `<img src="${f.dataUrl}" alt="">` : '<div class="pdf">PDF</div>';
         return `<div class="scan">${`<a href="#" data-scan-open="${id}">${thumb}</a>`}${App.isAdmin() ? `<button class="x" data-scan-del="${id}" data-scan-key="${key}" title="Hapus">×</button>` : ''}</div>`;
       }).join('')}
-      ${App.isAdmin() ? `<label class="btn sm ghost upload">📎 Upload scan<input type="file" accept="image/*,application/pdf" multiple data-scan-add="${key}" hidden></label>` : ''}
+      ${App.isAdmin() ? `<label class="btn sm ghost upload">${label}<input type="file" accept="image/*,application/pdf" multiple data-scan-add="${key}" hidden></label>` : ''}
     </div>`;
 
   App.openFile = (id) => {

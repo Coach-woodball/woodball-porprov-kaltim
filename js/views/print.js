@@ -250,8 +250,8 @@
       if (!list.length) return '';
       const nomor = (a) => App.S.entries.filter((e) => e.members.includes(a.id)).map((e) => App.event(e.eventId)?.code).filter(Boolean).join(', ');
       return `<section class="page flow">${kop('DAFTAR PESERTA', 'Kontingen ' + esc(k.name))}
-        <table class="pt"><thead><tr><th>No</th><th>Nama</th><th>L/P</th><th>Tanggal Lahir</th><th>Umur per ${esc(App.fmtDate(App.S.event.dateStart))}</th><th>Nomor</th></tr></thead><tbody>
-        ${list.sort((a, b) => a.gender.localeCompare(b.gender) || a.name.localeCompare(b.name)).map((a, i) => `<tr><td class="c">${i + 1}</td><td>${esc(a.name)}</td><td class="c">${a.gender}</td><td>${esc(a.birth ? App.fmtDate(a.birth) : '-')}</td><td>${esc(App.ageText(a.birth) || '-')}</td><td>${esc(nomor(a))}</td></tr>`).join('')}
+        <table class="pt reg-pt"><thead><tr><th>No</th><th>Foto</th><th>Nama</th><th>L/P</th><th>Tanggal Lahir</th><th>Umur per ${esc(App.fmtDate(App.S.event.dateStart))}</th><th>NIK</th><th>Nomor</th></tr></thead><tbody>
+        ${list.sort((a, b) => a.gender.localeCompare(b.gender) || a.name.localeCompare(b.name)).map((a, i) => `<tr><td class="c">${i + 1}</td><td class="ph">${App.files.url(a.photo) ? `<img src="${App.files.url(a.photo)}" alt="">` : ''}</td><td>${esc(a.name)}</td><td class="c">${a.gender}</td><td>${esc(a.birth ? App.fmtDate(a.birth) : '-')}</td><td>${esc(App.ageText(a.birth) || '-')}</td><td>${esc(a.nik || '-')}</td><td>${esc(nomor(a))}</td></tr>`).join('')}
         </tbody></table></section>`;
     }).join('') || `<section class="page">${kop('DAFTAR PESERTA')}<p class="c">Belum ada atlet.</p></section>`;
   }

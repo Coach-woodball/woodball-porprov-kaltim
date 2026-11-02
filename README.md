@@ -23,13 +23,23 @@ Data tetap tersimpan di browser masing-masing perangkat, bukan di server.
 |---|---|
 | Atur identitas event, logo, penandatangan, teks sertifikat, validasi | **Pengaturan** |
 | Cek daftar Kab/Kota | **Kontingen** |
-| Input atlet (manual atau tempel dari Excel) dan centang nomor yang diikuti | **Atlet** |
+| Bagikan formulir pendaftaran ke official, lalu impor dan terima berkas kiriman mereka | **Pendaftaran** |
+| Input atlet (manual atau tempel dari Excel), NIK, pas foto, dokumen, dan nomor yang diikuti | **Atlet** |
 | Klik **⚡ Buat entri otomatis**, lalu cek pasangan/tim dan aturan tiap nomor | **Nomor & Entri** |
 | Undi pairing (acak / ranking / manual), input skor per gate, upload scan score card | **Stroke** |
 | Undi grup atau seed, input skor per pertandingan, buat bagan | **Fairway** |
 | Lihat ranking, klasemen, bagan, dan rekap medali | **Hasil & Medali** |
 | Cetak A4 landscape atau simpan sebagai PDF | **Cetak PDF** |
 | Tampilan besar yang berganti otomatis untuk proyektor | **Layar Proyektor** |
+
+## Pendaftaran oleh official (`daftar.html`)
+
+1. Admin membuka menu **Pendaftaran**: atur batas waktu, kontak panitia, data wajib, lalu salin link formulir / pesan undangan WhatsApp.
+2. Official membuka link di HP/laptop, memilih Kab/Kota, mengisi official dan atlet (nama, tanggal lahir, NIK, pas foto, dokumen identitas, nomor). Isian tersimpan otomatis di browser official.
+3. Official mengunduh **berkas pendaftaran** (`Pendaftaran-Woodball-<KAB>-….json`) dan mengirimnya ke panitia, plus mencetak rekap bertanda tangan.
+4. Admin mengimpor berkas di menu **Pendaftaran**, memeriksa catatan, lalu **Terima** (atlet masuk ke menu Atlet, official tersimpan di Kontingen).
+
+Formulir online memakai `pendaftaran.json` (logo, nomor, kontingen, aturan). Buat ulang lewat **Unduh pengaturan formulir** setiap kali pengaturan berubah, simpan sejajar `index.html`, lalu publish.
 
 ## Aturan (default dari THB, bisa diubah per nomor)
 
@@ -57,6 +67,8 @@ js/fairway.js       logika fairway (gate, sudden death, grup, bagan, tim)
 js/medals.js        peringkat akhir, rekap medali, validasi
 js/app.js           router, layout, mode admin
 js/views/*.js       halaman-halaman aplikasi
+js/reg.js           aturan & format berkas pendaftaran (dipakai admin dan formulir)
+daftar.html         formulir pendaftaran untuk official (js/daftar.js, css/daftar.css)
 ```
 
 Tanpa build tool dan tanpa library eksternal, jadi bisa langsung di-hosting di Vercel atau GitHub Pages.

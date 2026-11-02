@@ -18,6 +18,8 @@
     s.stroke = s.stroke || {};
     s.fairway = s.fairway || {};
     s.admin = s.admin || { pinHash: null };
+    s.registration = Object.assign(App.reg.defaults(), s.registration || {});
+    s.registrations = s.registrations || [];
     // OB tidak dipakai lagi: buang dari urutan tie-break.
     s.events.forEach((e) => { if (Array.isArray(e.config?.tiebreak)) e.config.tiebreak = e.config.tiebreak.filter((k) => k !== "ob"); });
     return s;

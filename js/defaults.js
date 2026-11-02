@@ -116,7 +116,7 @@
       accentColor: '#dc2626',
     },
     menu: {
-      dashboard: 'Beranda', athletes: 'Atlet', kontingen: 'Kontingen', events: 'Nomor & Entri',
+      dashboard: 'Beranda', athletes: 'Atlet', registration: 'Pendaftaran', kontingen: 'Kontingen', events: 'Nomor & Entri',
       stroke: 'Stroke', fairway: 'Fairway', results: 'Hasil & Medali', print: 'Cetak PDF',
       display: 'Layar Proyektor', settings: 'Pengaturan', backup: 'Backup Data',
     },
@@ -129,6 +129,8 @@
       perKontingen: true,
     },
     admin: { pinHash: null },
+    registration: App.reg.defaults(),
+    registrations: [],
     kontingen: App.defaultKontingen(),
     athletes: [],
     events: App.defaultEvents(),

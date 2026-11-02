@@ -550,3 +550,26 @@ a.bm:hover { border-color: var(--brand); transform: translateY(-1px); }
   .page table.pt tr { break-inside: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ---------- pendaftaran (admin) ---------- */
+.reg-url { word-break: break-all; }
+.reg-track { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.reg-track > div { display: flex; flex-direction: column; padding: 8px 12px; border-radius: 12px; background: var(--soft); border: 1px solid var(--line); }
+.reg-track > div.ok { background: var(--ok-bg); }
+.reg-track small { color: var(--muted); font-size: .75rem; }
+.reg-sub summary { font-size: 1.02rem; }
+.reg-offs { margin: 8px 0; font-size: .88rem; }
+.reg-kpick { margin: 8px 0; color: var(--red-tx); }
+.reg-thumb, .ath-thumb { width: 40px; height: 52px; object-fit: cover; border-radius: 7px; border: 1px solid var(--line); display: block; }
+.ath-thumb { width: 30px; height: 38px; display: inline-block; vertical-align: middle; margin-right: 8px; }
+.reg-warn { font-size: .8rem; color: var(--warn-tx); font-weight: 600; }
+tr.dim td { opacity: .5; }
+.ath-media { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; margin: 6px 0 4px; }
+.ath-media .photo-box { width: 90px; height: 120px; border-radius: 10px; overflow: hidden; background: var(--soft); border: 1px dashed var(--line); display: grid; place-items: center; font-size: .75rem; color: var(--muted); text-align: center; }
+.ath-media .photo-box img { width: 100%; height: 100%; object-fit: cover; }
+.ath-media .scans { margin-top: 0; }
+.k-offs { font-size: .8rem; color: var(--muted); }
+.ath-nm { display: inline-flex; flex-direction: column; vertical-align: middle; }
+.ath-nm small { font-size: .74rem; }
+.page .reg-pt td.ph { width: 16mm; padding: 1px !important; text-align: center; }
+.page .reg-pt td.ph img { width: 14mm; height: 18mm; object-fit: cover; display: block; margin: auto; }
