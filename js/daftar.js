@@ -25,21 +25,24 @@
       });
     } catch (e) { return null; }
   }
-  let saveTimer;
+  let saveTimer, draftWarned = false;
   function saveDraft() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
       try {
         const db = await idb();
         db.transaction('kv', 'readwrite').objectStore('kv').put({ ...D, updated: Date.now() }, 'draft');
-      } catch (e) { App.toast('Draf tidak bisa disimpan di browser ini', 'err'); }
+      } catch (e) {
+        if (!draftWarned) App.toast('Isian tidak tersimpan otomatis di browser ini, segera unduh berkas setelah selesai', 'err');
+        draftWarned = true;
+      }
     }, 300);
   }
 
   // Data admin di browser yang sama (dipakai saat admin membuka formulir dari laptopnya).
   const adminState = () => new Promise((resolve) => {
-    if (!window.indexedDB) return resolve(null);
-    const req = indexedDB.open('woodball-app');
+    let req;
+    try { req = indexedDB.open('woodball-app'); } catch (e) { return resolve(null); } // penyimpanan diblokir (mis. mode privat)
     req.onupgradeneeded = () => req.transaction.abort(); // admin belum pernah memakai browser ini
     req.onerror = () => resolve(null);
     req.onsuccess = () => {
@@ -280,11 +283,11 @@
     const k = kontingen();
     return `Pendaftaran-Woodball-${(k ? k.short || k.name : 'kontingen').replace(/[^\w-]+/g, '_')}-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.json`;
   }
-  function readyToSend() {
+  async function readyToSend() {
     if (edit) { App.toast('Simpan atau batalkan isian atlet dulu', 'err'); return false; }
     if (!D.kontingenId || !D.athletes.length) { App.toast('Pilih kabupaten/kota dan isi minimal 1 atlet', 'err'); return false; }
     const probs = problems();
-    return !probs.length || confirm('Masih ada catatan:\n- ' + probs.join('\n- ') + '\n\nTetap lanjut?');
+    return !probs.length || (await App.ask('Masih ada catatan:\n- ' + probs.join('\n- ') + '\n\nTetap lanjut?'));
   }
 
   function loadFile(obj) {
@@ -380,7 +383,7 @@
       if (!file) return;
       try {
         const obj = JSON.parse(await App.readFile(file, 'text'));
-        if ((D.athletes.length || D.kontingenId) && !confirm('Ganti isian sekarang dengan isi berkas ini?')) return;
+        if ((D.athletes.length || D.kontingenId) && !(await App.ask('Ganti isian sekarang dengan isi berkas ini?'))) return;
         loadFile(obj);
         edit = null;
         saveDraft();
@@ -428,7 +431,7 @@
       document.getElementById('editor').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (b.dataset.athDel) {
       const a = D.athletes.find((x) => x.id === b.dataset.athDel);
-      if (!confirm(`Hapus ${a.name || 'atlet ini'}?`)) return;
+      if (!(await App.ask(`Hapus ${a.name || 'atlet ini'}?`))) return;
       D.athletes = D.athletes.filter((x) => x.id !== a.id);
       saveDraft(); render();
     } else if (b.id === 'ed-save') {
@@ -446,11 +449,11 @@
     } else if (b.dataset.docDel) {
       edit.docs.splice(+b.dataset.docDel, 1); render();
     } else if (b.id === 'd-download') {
-      if (!readyToSend()) return;
+      if (!(await readyToSend())) return;
       App.download(fileName(), JSON.stringify(buildFile()));
       App.toast('Berkas diunduh, kirim ke panitia');
     } else if (b.id === 'd-share') {
-      if (!readyToSend()) return;
+      if (!(await readyToSend())) return;
       const file = new File([JSON.stringify(buildFile())], fileName(), { type: 'application/json' });
       try { await navigator.share({ files: [file], title: 'Pendaftaran Woodball', text: `Pendaftaran atlet woodball ${C.event.shortName} - ${(kontingen() || {}).name || ''}` }); }
       catch (err) { if (err.name !== 'AbortError') App.toast('Tidak bisa membagikan, pakai tombol Unduh', 'err'); }
@@ -459,7 +462,7 @@
       document.getElementById('reg-print').innerHTML = printHtml();
       setTimeout(() => window.print(), 300); // beri waktu gambar dimuat
     } else if (b.id === 'd-reset') {
-      if (!confirm('Hapus semua isian di formulir ini? Berkas yang sudah diunduh tidak terpengaruh.')) return;
+      if (!(await App.ask('Hapus semua isian di formulir ini? Berkas yang sudah diunduh tidak terpengaruh.'))) return;
       D = newDraft(); edit = null;
       saveDraft(); render();
     }

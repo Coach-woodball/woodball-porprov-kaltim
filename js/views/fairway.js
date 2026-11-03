@@ -158,8 +158,8 @@
         }).then(() => { App.flash = 'bracket'; App.commit(msg); });
       };
       const hasScores = () => d.matches.some((m) => Fw.matchResult(ev, m).status === 'done' || Fw.matchResult(ev, m).status === 'live');
-      root.querySelectorAll('[data-ggen]').forEach((b) => b.addEventListener('click', () => {
-        if (d.groups.length && !confirm(hasScores() ? 'PERHATIAN: sudah ada skor. Undi ulang akan MENGHAPUS semua pertandingan grup & skornya. Lanjut?' : 'Undi ulang grup?')) return;
+      root.querySelectorAll('[data-ggen]').forEach((b) => b.addEventListener('click', async () => {
+        if (d.groups.length && !(await App.ask(hasScores() ? 'PERHATIAN: sudah ada skor. Undi ulang akan MENGHAPUS semua pertandingan grup & skornya. Lanjut?' : 'Undi ulang grup?'))) return;
         Fw.generateGroups(ev, b.dataset.ggen, ev.config.format === 'rr' ? 1 : ev.config.groupCount);
         if (b.dataset.ggen !== 'random') return App.commit('Grup & jadwal dibuat');
         App.save(true);
@@ -167,8 +167,8 @@
           .then(() => App.commit('Grup & jadwal dibuat'));
       }));
       root.querySelector('#gmanual-toggle')?.addEventListener('click', () => root.querySelector('#gmanual').classList.toggle('hidden'));
-      root.querySelector('#gmanual-apply')?.addEventListener('click', () => {
-        if (hasScores() && !confirm('Menerapkan grup manual akan membuat ulang jadwal grup dan MENGHAPUS skor grup. Lanjut?')) return;
+      root.querySelector('#gmanual-apply')?.addEventListener('click', async () => {
+        if (hasScores() && !(await App.ask('Menerapkan grup manual akan membuat ulang jadwal grup dan MENGHAPUS skor grup. Lanjut?'))) return;
         const n = ev.config.format === 'rr' ? 1 : Math.max(1, ev.config.groupCount);
         const groups = Array.from({ length: n }, (_, i) => ({ id: App.uid('gr_'), name: String.fromCharCode(65 + i), entryIds: [] }));
         root.querySelectorAll('[data-gsel]').forEach((sel) => { const gi = App.num(sel.value); if (gi != null && groups[gi]) groups[gi].entryIds.push(sel.dataset.gsel); });
@@ -183,10 +183,10 @@
         if (v == null) delete d.manual[gid][eid]; else d.manual[gid][eid] = v;
         App.commit();
       }));
-      root.querySelector('#ko-from-groups')?.addEventListener('click', () => {
+      root.querySelector('#ko-from-groups')?.addEventListener('click', async () => {
         const notDone = d.groups.filter((g) => !Fw.groupDone(ev, g.id));
-        if (notDone.length && !confirm(`Grup ${notDone.map((g) => g.name).join(', ')} belum selesai. Tetap buat bagan dari klasemen sementara?`)) return;
-        if (Fw.koMatches(ev).length && !confirm('Bagan lama beserta skornya akan diganti. Lanjut?')) return;
+        if (notDone.length && !(await App.ask(`Grup ${notDone.map((g) => g.name).join(', ')} belum selesai. Tetap buat bagan dari klasemen sementara?`))) return;
+        if (Fw.koMatches(ev).length && !(await App.ask('Bagan lama beserta skornya akan diganti. Lanjut?'))) return;
         Fw.buildKO(ev, Fw.groupSeeds(ev));
         animKO('Bagan dibuat');
       });
@@ -210,8 +210,8 @@
         App.drawAnimation({ title: `Acak Seed · ${ev.name}`, boxes: [{ label: 'Urutan seed', items: d.seeds.map((id, i) => `${i + 1}. ${lab(id)}`) }] })
           .then(() => App.commit('Seed diacak'));
       });
-      root.querySelector('#ko-build')?.addEventListener('click', () => {
-        if (Fw.koMatches(ev).length && !confirm('Bagan lama beserta skornya akan diganti. Lanjut?')) return;
+      root.querySelector('#ko-build')?.addEventListener('click', async () => {
+        if (Fw.koMatches(ev).length && !(await App.ask('Bagan lama beserta skornya akan diganti. Lanjut?'))) return;
         d.seeds = seedList();
         Fw.buildKO(ev, d.seeds);
         animKO('Bagan dibuat');

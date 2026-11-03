@@ -105,6 +105,7 @@
     url(id) { const f = App.files.cache.get(id); return f ? f.dataUrl : ''; },
     async remove(id) {
       App.files.cache.delete(id);
+      if (App.sim && App.sim.fileKeys.has(id)) return; // saat simulasi: file lama tetap ada untuk dipulihkan
       await App.db.del('files', id);
     },
   };

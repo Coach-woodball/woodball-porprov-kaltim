@@ -7,6 +7,31 @@
     const saved = await App.db.get('kv', 'state');
     App.S = saved ? migrate(saved) : App.defaultState();
     if (!saved) await App.db.put('kv', 'state', App.S);
+    const snap = await App.db.get('kv', 'simSnapshot');
+    App.sim = snap ? { started: snap.started, cleared: snap.cleared, fileKeys: new Set(snap.fileKeys) } : null;
+  };
+
+  // ---------- Mode simulasi ----------
+  // Salinan data disimpan dulu; semua yang dicoba selama simulasi dibuang saat simulasi diakhiri.
+  App.startSim = async (clear) => {
+    const snap = { state: JSON.parse(JSON.stringify(App.S)), fileKeys: [...App.files.cache.keys()], started: new Date().toISOString(), cleared: !!clear };
+    await App.db.put('kv', 'simSnapshot', snap);
+    App.sim = { started: snap.started, cleared: snap.cleared, fileKeys: new Set(snap.fileKeys) };
+    if (clear) { App.S.stroke = {}; App.S.fairway = {}; } // atlet & entri tetap, pairing/skor/bagan kosong
+    await App.save(true);
+  };
+  App.endSim = async () => {
+    const snap = await App.db.get('kv', 'simSnapshot');
+    if (snap) {
+      const keep = new Set(snap.fileKeys);
+      for (const id of [...App.files.cache.keys()]) if (!keep.has(id)) await App.files.remove(id);
+      App.S = migrate(snap.state);
+      await App.save(true);
+    }
+    await App.db.del('kv', 'simSnapshot');
+    App.sim = null;
+    App.files.cache.clear();
+    await App.files.loadAll(); // file yang "dihapus" saat simulasi masih ada di database
   };
 
   function migrate(s) {

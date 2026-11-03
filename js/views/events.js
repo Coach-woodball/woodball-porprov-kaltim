@@ -139,8 +139,8 @@
     $('#ev-code').addEventListener('change', (e) => { ev.code = e.target.value.trim().toUpperCase(); App.commit(); });
     $('#ev-name').addEventListener('change', (e) => { ev.name = e.target.value.trim(); App.commit(); });
     $('#ev-gender').addEventListener('change', (e) => { ev.gender = e.target.value; App.commit(); });
-    $('#ev-del').addEventListener('click', () => {
-      if (!confirm(`Hapus nomor ${ev.name} beserta semua entri & skornya?`)) return;
+    $('#ev-del').addEventListener('click', async () => {
+      if (!(await App.ask(`Hapus nomor ${ev.name} beserta semua entri & skornya?`))) return;
       App.S.events = App.S.events.filter((x) => x.id !== ev.id);
       App.S.entries = App.S.entries.filter((x) => x.eventId !== ev.id);
       delete App.S.stroke[ev.id];
@@ -155,9 +155,9 @@
       r[f] = f === 'name' ? inp.value : App.num(inp.value) || (f === 'gates' ? 12 : null);
       App.commit('Ronde disimpan');
     }));
-    root.querySelectorAll('[data-round-del]').forEach((b) => b.addEventListener('click', () => {
+    root.querySelectorAll('[data-round-del]').forEach((b) => b.addEventListener('click', async () => {
       if (c.rounds.length <= 1) return App.toast('Minimal 1 ronde', 'err');
-      if (!confirm('Hapus ronde ini? Skor ronde tersebut ikut terhapus.')) return;
+      if (!(await App.ask('Hapus ronde ini? Skor ronde tersebut ikut terhapus.'))) return;
       const i = +b.dataset.roundDel;
       c.rounds.splice(i, 1);
       App.stroke.data(ev).rounds.splice(i, 1);
@@ -204,8 +204,8 @@
       App.entry(eid).members[+s] = sel.value || null;
       App.commit();
     }));
-    root.querySelectorAll('[data-edel]').forEach((b) => b.addEventListener('click', () => {
-      if (!confirm('Hapus entri ini?')) return;
+    root.querySelectorAll('[data-edel]').forEach((b) => b.addEventListener('click', async () => {
+      if (!(await App.ask('Hapus entri ini?'))) return;
       App.removeEntry(b.dataset.edel);
       App.commit('Entri dihapus');
     }));

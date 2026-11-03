@@ -112,9 +112,9 @@
       const rc = ev.config.rounds[ri];
       const r = St.data(ev).rounds[ri];
 
-      root.querySelectorAll('[data-gen]').forEach((b) => b.addEventListener('click', () => {
+      root.querySelectorAll('[data-gen]').forEach((b) => b.addEventListener('click', async () => {
         const hasScores = r.groups.some((g) => g.entryIds.some((id) => St.sumScore(St.score(ev, ri, id), rc.gates).played));
-        if (r.groups.length && !confirm(hasScores ? 'Pairing sudah ada dan sudah ada skor. Susun ulang pairing? (skor tetap tersimpan per pemain)' : 'Susun ulang pairing?')) return;
+        if (r.groups.length && !(await App.ask(hasScores ? 'Pairing sudah ada dan sudah ada skor. Susun ulang pairing? (skor tetap tersimpan per pemain)' : 'Susun ulang pairing?'))) return;
         St.generateGroups(ev, ri, b.dataset.gen);
         if (b.dataset.gen !== 'random') return App.commit('Pairing dibuat');
         App.save(true);
@@ -124,12 +124,12 @@
           boxes: r.groups.map((g) => ({ label: `Pairing ${g.no}`, items: g.entryIds.map((id) => App.entryLabel(App.entry(id))) })),
         }).then(() => App.commit('Pairing dibuat'));
       }));
-      root.querySelectorAll('[data-gate]').forEach((b) => b.addEventListener('click', () => {
+      root.querySelectorAll('[data-gate]').forEach((b) => b.addEventListener('click', async () => {
         const n = rc.gates + +b.dataset.gate;
         if (n < 1 || n > 36) return;
         if (n < rc.gates) {
           const used = r.groups.some((g) => g.entryIds.some((id) => St.score(ev, ri, id).g[rc.gates - 1] != null));
-          if (!confirm(`Kurangi gate ${rc.name} menjadi ${n}?${used ? ' Skor gate ' + rc.gates + ' yang sudah diisi tidak ikut dihitung (tetap tersimpan).' : ''}`)) return;
+          if (!(await App.ask(`Kurangi gate ${rc.name} menjadi ${n}?${used ? ' Skor gate ' + rc.gates + ' yang sudah diisi tidak ikut dihitung (tetap tersimpan).' : ''}`))) return;
         }
         rc.gates = n;
         App.commit(`${rc.name}: ${n} gate`);

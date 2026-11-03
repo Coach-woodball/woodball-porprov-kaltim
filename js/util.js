@@ -128,6 +128,32 @@ window.App = window.App || {};
     toastTimer = setTimeout(() => (el.className = ''), 2600);
   };
 
+  // Dialog di dalam halaman, pengganti prompt()/confirm()/alert() yang diblokir di sebagian browser/webview.
+  // fields: [{label, type}] -> Promise<string[]>; tanpa fields -> Promise<true>; dibatalkan -> null.
+  App.dialog = ({ title, text, fields = [], ok = 'OK', cancel = 'Batal', danger = false }) => new Promise((resolve) => {
+    const el = document.createElement('div');
+    el.className = 'dlg-overlay';
+    el.innerHTML = `<form class="dlg glass" autocomplete="off"><h3>${App.esc(title)}</h3>${text ? `<p class="dlg-text">${App.esc(text)}</p>` : ''}
+      ${fields.map((f, i) => `<label>${App.esc(f.label)}<input name="f${i}" type="${f.type || 'text'}" ${f.type === 'password' ? 'inputmode="numeric"' : ''}></label>`).join('')}
+      <div class="row gap dlg-foot">${cancel ? `<button type="button" class="btn ghost" data-cancel>${App.esc(cancel)}</button>` : ''}<button class="btn ${danger ? 'danger solid' : ''}">${App.esc(ok)}</button></div></form>`;
+    document.body.appendChild(el);
+    const form = el.querySelector('form');
+    const close = (val) => { el.remove(); document.removeEventListener('keydown', onKey); resolve(val); };
+    const onKey = (e) => { if (e.key === 'Escape') close(null); };
+    document.addEventListener('keydown', onKey);
+    form.addEventListener('submit', (e) => { e.preventDefault(); close(fields.length ? fields.map((_, i) => form[`f${i}`].value) : true); });
+    el.querySelector('[data-cancel]')?.addEventListener('click', () => close(null));
+    el.addEventListener('mousedown', (e) => { if (e.target === el) close(null); });
+    setTimeout(() => (fields.length ? form.f0 : form.querySelector('button:not([data-cancel])')).focus(), 30);
+  });
+  // Pengganti confirm(): Promise<boolean>. Tanpa label tombol khusus, kata "hapus" membuat tombol merah "Ya, hapus".
+  App.ask = async (text, ok) => {
+    const danger = !ok && /hapus/i.test(text);
+    return !!(await App.dialog({ title: danger ? 'Konfirmasi hapus' : 'Konfirmasi', text, ok: ok || (danger ? 'Ya, hapus' : 'Ya, lanjut'), danger }));
+  };
+  // Pengganti alert().
+  App.notice = (text, title = 'Informasi') => App.dialog({ title, text, ok: 'Tutup', cancel: '' });
+
   App.ROMAWI = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
   App.MEDAL = { 1: 'Emas', 2: 'Perak', 3: 'Perunggu' };
 })(window.App);

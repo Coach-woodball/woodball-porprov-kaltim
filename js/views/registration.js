@@ -164,7 +164,7 @@ ${reg.deadline ? `\nBatas pendaftaran: ${App.fmtDate(reg.deadline)}` : ''}${reg.
       root.querySelectorAll('[data-regb]').forEach((inp) => inp.addEventListener('change', () => { reg[inp.dataset.regb] = inp.checked; App.commit('Tersimpan'); }));
       root.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => {
         const text = b.dataset.copy === 'url' ? formUrl() : inviteText();
-        try { await navigator.clipboard.writeText(text); App.toast('Disalin'); } catch (e) { prompt('Salin teks berikut:', text); }
+        try { await navigator.clipboard.writeText(text); App.toast('Disalin'); } catch (e) { App.notice(text, 'Salin teks berikut'); }
       }));
       root.querySelector('#reg-config').addEventListener('click', () => {
         App.download('pendaftaran.json', JSON.stringify(R.buildConfig(App.S, App.files.url), null, 1));
@@ -176,7 +176,7 @@ ${reg.deadline ? `\nBatas pendaftaran: ${App.fmtDate(reg.deadline)}` : ''}${reg.
           try {
             const res = await importFile(file);
             if (res.skipped) skipped++; else { files++; n += res.n; }
-          } catch (err) { alert(`Gagal mengimpor ${file.name}: ${err.message}`); }
+          } catch (err) { App.notice(`Gagal mengimpor ${file.name}: ${err.message}`); }
         }
         App.commit(`${files} berkas diimpor (${n} atlet)` + (skipped ? `, ${skipped} berkas sudah pernah diimpor` : ''));
       });
@@ -208,7 +208,7 @@ ${reg.deadline ? `\nBatas pendaftaran: ${App.fmtDate(reg.deadline)}` : ''}${reg.
       }));
       root.querySelectorAll('[data-sub-del]').forEach((b) => b.addEventListener('click', async () => {
         const sub = App.S.registrations.find((s) => s.id === b.dataset.subDel);
-        if (!confirm('Hapus kiriman ini dari daftar? Atlet yang sudah diterima tetap ada.')) return;
+        if (!(await App.ask('Hapus kiriman ini dari daftar? Atlet yang sudah diterima tetap ada.'))) return;
         await removeSub(sub);
         App.commit('Kiriman dihapus');
       }));

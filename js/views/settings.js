@@ -110,10 +110,18 @@
           <p class="muted">Data saat ini akan <b>diganti</b> dengan isi file backup. Dipakai juga untuk memindahkan data ke laptop / perangkat lain.</p>
           <label class="btn ghost upload">📂 Pilih file backup (.json)<input type="file" accept=".json,application/json" id="bk-restore" hidden></label>
         </div>
+        <div class="card"><h3>🧪 Mode simulasi</h3>
+          <p class="muted">Untuk gladi sebelum pertandingan: coba undi pairing, buat bagan, dan input skor tanpa merusak data asli.
+            Data saat ini disalin dulu, lalu dikembalikan persis seperti semula saat simulasi diakhiri.</p>
+          ${App.sim ? `<p><span class="pill live">Simulasi sedang berjalan</span></p><button class="btn" data-act="sim-end">Akhiri &amp; kembalikan data</button>`
+            : `<div class="row gap wrap"><button class="btn" id="sim-clear">Mulai dari awal (kosongkan pairing, skor &amp; bagan)</button>
+              <button class="btn ghost" id="sim-keep">Mulai dengan data apa adanya</button></div>
+              <p class="muted small">Atlet, kontingen, nomor, dan entri tetap. Jangan input pertandingan sungguhan selama mode simulasi.</p>`}
+        </div>
         <div class="card"><h3>Data contoh</h3><p class="muted">Isi atlet & entri contoh untuk mencoba aplikasi. Hanya bisa jika belum ada atlet.</p>
           <button class="btn ghost" id="bk-demo" ${App.S.athletes.length ? 'disabled' : ''}>Isi data contoh</button></div>
         <div class="card warn"><h3>Reset</h3><p>Menghapus seluruh data (atlet, skor, logo, scan) dan kembali ke pengaturan awal PORPROV.</p>
-          <button class="btn danger" id="bk-reset">Hapus semua data</button></div>`;
+          <button class="btn danger" id="bk-reset" ${App.sim ? 'disabled title="Akhiri simulasi dulu"' : ''}>Hapus semua data</button></div>`;
     },
     mount(root) {
       const stamp = () => new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
@@ -131,7 +139,7 @@
         try {
           const obj = JSON.parse(await App.readFile(file, 'text'));
           if (obj.app !== 'woodball' || !obj.state) throw new Error('Bukan file backup aplikasi ini');
-          if (!confirm('Ganti semua data saat ini dengan isi backup?')) return;
+          if (!(await App.ask('Ganti semua data saat ini dengan isi backup?'))) return;
           await App.db.clear('files');
           App.files.cache.clear();
           for (const [id, f] of Object.entries(obj.files || {})) { App.files.cache.set(id, f); await App.db.put('files', id, f); }
@@ -144,6 +152,15 @@
           App.toast('Gagal: ' + err.message, 'err');
         }
       });
+      const startSim = async (clear) => {
+        if (!(await App.ask(clear ? 'Mulai simulasi dari awal? Pairing, skor, dan bagan dikosongkan selama simulasi, lalu dikembalikan saat simulasi diakhiri.'
+          : 'Mulai simulasi dengan data apa adanya?', 'Mulai simulasi'))) return;
+        await App.startSim(clear);
+        App.go('stroke');
+        App.toast('Mode simulasi aktif');
+      };
+      root.querySelector('#sim-clear')?.addEventListener('click', () => startSim(true));
+      root.querySelector('#sim-keep')?.addEventListener('click', () => startSim(false));
       root.querySelector('#bk-demo').addEventListener('click', () => { App.demoData(); App.commit('Data contoh dibuat'); });
       root.querySelector('#bk-reset').addEventListener('click', async () => {
         const v = await App.dialog({ title: 'Hapus semua data', text: 'Ketik HAPUS untuk menghapus semua data.', fields: [{ label: 'Konfirmasi' }], ok: 'Hapus' });

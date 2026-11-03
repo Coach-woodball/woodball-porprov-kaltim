@@ -64,7 +64,15 @@
       </header>
       <nav class="sidebar glass no-print" id="sidebar">${nav}</nav>
       <div class="scrim no-print" data-act="toggle-nav"></div>
-      <main class="main" id="main">${inner}</main>`;
+      <main class="main" id="main">${simBanner(admin)}${inner}</main>`;
+  }
+
+  function simBanner(admin) {
+    if (!App.sim) return '';
+    const t = new Date(App.sim.started).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+    return `<div class="card sim-banner no-print"><div><b>🧪 Mode simulasi</b> <span class="muted small">sejak ${App.esc(t)}${App.sim.cleared ? ' · pairing, skor & bagan dikosongkan' : ''}</span>
+      <div class="small">Silakan coba undi pairing, bagan, dan input skor. Semua perubahan dibuang dan data asli kembali saat simulasi diakhiri.</div></div>
+      ${admin ? '<button class="btn sm" data-act="sim-end">Akhiri &amp; kembalikan data</button>' : ''}</div>`;
   }
 
   App.render = () => {
@@ -100,25 +108,6 @@
     App.rerender();
     if (msg) App.toast(msg);
   };
-
-  // Dialog isian di dalam halaman (pengganti prompt(), yang diblokir di sebagian browser/webview).
-  // fields: [{label, type}] -> Promise<string[] | null> (null = dibatalkan).
-  App.dialog = ({ title, text, fields, ok = 'OK' }) => new Promise((resolve) => {
-    const el = document.createElement('div');
-    el.className = 'dlg-overlay';
-    el.innerHTML = `<form class="dlg glass" autocomplete="off"><h3>${App.esc(title)}</h3>${text ? `<p class="muted">${App.esc(text)}</p>` : ''}
-      ${fields.map((f, i) => `<label>${App.esc(f.label)}<input name="f${i}" type="${f.type || 'text'}" ${f.type === 'password' ? 'inputmode="numeric"' : ''}></label>`).join('')}
-      <div class="row gap dlg-foot"><button type="button" class="btn ghost" data-cancel>Batal</button><button class="btn">${App.esc(ok)}</button></div></form>`;
-    document.body.appendChild(el);
-    const form = el.querySelector('form');
-    const close = (val) => { el.remove(); document.removeEventListener('keydown', onKey); resolve(val); };
-    const onKey = (e) => { if (e.key === 'Escape') close(null); };
-    document.addEventListener('keydown', onKey);
-    form.addEventListener('submit', (e) => { e.preventDefault(); close(fields.map((_, i) => form[`f${i}`].value)); });
-    el.querySelector('[data-cancel]').addEventListener('click', () => close(null));
-    el.addEventListener('mousedown', (e) => { if (e.target === el) close(null); });
-    setTimeout(() => form.f0.focus(), 30);
-  });
 
   // Buat PIN baru (dua kali ketik). Mengembalikan hash PIN atau null.
   App.newPin = async (title) => {
@@ -160,6 +149,14 @@
       App.toast(THEME_LABEL[next]);
     }
     else if (act === 'login') App.login();
+    else if (act === 'sim-end') {
+      App.ask('Akhiri simulasi? Semua perubahan selama simulasi dibuang dan data kembali seperti sebelum simulasi.', 'Akhiri simulasi').then(async (ok) => {
+        if (!ok) return;
+        await App.endSim();
+        App.rerender();
+        App.toast('Simulasi selesai, data asli dipulihkan');
+      });
+    }
     else if (act === 'logout') { sessionStorage.removeItem('wb-admin'); App.toast('Keluar dari mode admin'); App.go('dashboard'); App.rerender(); }
   });
 
@@ -213,7 +210,7 @@
       App.commit('Scan tersimpan');
     }));
     root.querySelectorAll('[data-scan-del]').forEach((b) => b.addEventListener('click', async () => {
-      if (!confirm('Hapus scan ini?')) return;
+      if (!(await App.ask('Hapus scan ini?'))) return;
       const list = getList(b.dataset.scanKey);
       const i = list.indexOf(b.dataset.scanDel);
       if (i >= 0) list.splice(i, 1);

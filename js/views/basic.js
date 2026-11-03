@@ -76,8 +76,8 @@
         const k = App.kontingen(tr.dataset.id);
         tr.querySelector('.k-name').addEventListener('change', (e) => { k.name = e.target.value.trim(); App.save(); });
         tr.querySelector('.k-short').addEventListener('change', (e) => { k.short = e.target.value.trim(); App.save(); });
-        tr.querySelector('.k-del').addEventListener('click', () => {
-          if (!confirm(`Hapus kontingen ${k.name}?`)) return;
+        tr.querySelector('.k-del').addEventListener('click', async () => {
+          if (!(await App.ask(`Hapus kontingen ${k.name}?`))) return;
           App.S.kontingen = App.S.kontingen.filter((x) => x.id !== k.id);
           App.S.entries = App.S.entries.filter((e) => e.kontingenId !== k.id);
           App.commit('Kontingen dihapus');
@@ -202,9 +202,9 @@
       }
       root.querySelector('#ath-cancel')?.addEventListener('click', () => { editId = null; App.rerender(); });
       root.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => { editId = b.dataset.edit; App.rerender(); window.scrollTo(0, 0); }));
-      root.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => {
+      root.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
         const a = App.athlete(b.dataset.del);
-        if (!confirm(`Hapus ${a.name}? Atlet juga dikeluarkan dari semua entri.`)) return;
+        if (!(await App.ask(`Hapus ${a.name}? Atlet juga dikeluarkan dari semua entri.`))) return;
         App.S.athletes = App.S.athletes.filter((x) => x.id !== a.id);
         App.S.entries.forEach((e) => (e.members = e.members.map((m) => (m === a.id ? null : m))));
         App.commit('Atlet dihapus');
@@ -217,7 +217,7 @@
       root.querySelector('#ath-import-go').addEventListener('click', () => {
         const res = importPaste(root.querySelector('#ath-paste').value);
         App.commit(`${res.added} atlet diimpor` + (res.skipped.length ? `, ${res.skipped.length} baris dilewati` : ''));
-        if (res.skipped.length) alert('Baris dilewati:\n' + res.skipped.join('\n'));
+        if (res.skipped.length) App.notice('Baris dilewati:\n' + res.skipped.join('\n'));
       });
       root.querySelector('#ath-auto').addEventListener('click', () => {
         let n = 0;
