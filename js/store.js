@@ -32,6 +32,7 @@
     App.sim = null;
     App.files.cache.clear();
     await App.files.loadAll(); // file yang "dihapus" saat simulasi masih ada di database
+    if (App.cloud && App.cloud.admin) App.cloud.syncOnStart(); // lanjutkan sinkron yang dijeda selama simulasi
   };
 
   function migrate(s) {
@@ -52,6 +53,8 @@
   App.migrate = migrate;
 
   App.save = (immediate) => {
+    if (App.cloud && App.cloud.publicMode) return; // tampilan hasil publik: jangan timpa data perangkat
+    if (App.cloud) App.cloud.markDirty();
     clearTimeout(saveTimer);
     const run = () => App.db.put('kv', 'state', App.S).catch((e) => App.toast('Gagal menyimpan: ' + e.message, 'err'));
     if (immediate) return run();

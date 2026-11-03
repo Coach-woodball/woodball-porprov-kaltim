@@ -579,9 +579,12 @@ tr.dim td { opacity: .5; }
 .dlg { width: min(380px, 100%); border-radius: var(--radius); padding: 20px; display: grid; gap: 12px; background: var(--glass-strong); }
 .dlg h3 { margin: 0; }
 .dlg p { margin: 0; font-size: .88rem; }
-.dlg input { font-size: 1.1rem; letter-spacing: .2em; }
+.dlg input { font-size: 1rem; }
+.dlg input[inputmode="numeric"] { font-size: 1.1rem; letter-spacing: .2em; }
 .dlg-foot { justify-content: flex-end; margin-top: 4px; }
 @keyframes dlgIn { from { opacity: 0; } }
 .dlg-text { white-space: pre-line; color: var(--text); font-size: .92rem !important; line-height: 1.45; max-height: 50vh; overflow: auto; }
 .dlg .btn.danger.solid { background: linear-gradient(135deg, #dc2626, #991b1b); color: #fff; }
 .sim-banner { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; border: 2px dashed var(--warn-tx); background: linear-gradient(var(--warn-bg), var(--warn-bg)), var(--glass); }
+.cloud-pill { white-space: nowrap; }
+@media (max-width: 900px) { .cloud-pill { max-width: 34px; overflow: hidden; padding: 3px 8px; } }

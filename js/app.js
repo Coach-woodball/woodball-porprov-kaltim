@@ -59,7 +59,7 @@
         <div class="brand">${App.logoImgs('logo-sm')}<div><b>${App.esc(E.sport)} <span class="dot">•</span> ${App.esc(E.shortName)}</b><small>${App.esc(App.fmtDateRange(E.dateStart, E.dateEnd))} · ${App.esc(E.city)}</small></div></div>
         <div class="spacer"></div>
         <button class="icon-btn" data-act="theme" title="${THEME_LABEL[th]}" aria-label="${THEME_LABEL[th]}">${App.icon(th)}</button>
-        ${admin ? '<span class="badge admin">ADMIN</span><button class="btn sm ghost" data-act="logout">Keluar</button>'
+        ${admin ? `${App.cloud.badge()}<span class="badge admin">ADMIN</span><button class="btn sm ghost" data-act="logout">Keluar</button>`
           : '<button class="btn sm" data-act="login">Masuk Admin</button>'}
       </header>
       <nav class="sidebar glass no-print" id="sidebar">${nav}</nav>
@@ -71,7 +71,7 @@
     if (!App.sim) return '';
     const t = new Date(App.sim.started).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
     return `<div class="card sim-banner no-print"><div><b>🧪 Mode simulasi</b> <span class="muted small">sejak ${App.esc(t)}${App.sim.cleared ? ' · pairing, skor & bagan dikosongkan' : ''}</span>
-      <div class="small">Silakan coba undi pairing, bagan, dan input skor. Semua perubahan dibuang dan data asli kembali saat simulasi diakhiri.</div></div>
+      <div class="small">Silakan coba undi pairing, bagan, dan input skor. Semua perubahan dibuang dan data asli kembali saat simulasi diakhiri.${App.cloud.admin ? ' Selama simulasi, data tidak dikirim ke server dan hasil publik tidak berubah.' : ''}</div></div>
       ${admin ? '<button class="btn sm" data-act="sim-end">Akhiri &amp; kembalikan data</button>' : ''}</div>`;
   }
 
@@ -112,14 +112,16 @@
   // Buat PIN baru (dua kali ketik). Mengembalikan hash PIN atau null.
   App.newPin = async (title) => {
     const v = await App.dialog({ title, text: 'Minimal 4 karakter. Simpan PIN ini baik-baik.', ok: 'Simpan PIN',
-      fields: [{ label: 'PIN baru', type: 'password' }, { label: 'Ulangi PIN', type: 'password' }] });
+      fields: [{ label: 'PIN baru', type: 'password', numeric: true }, { label: 'Ulangi PIN', type: 'password', numeric: true }] });
     if (!v) return null;
     if (v[0].length < 4) { App.toast('PIN minimal 4 karakter', 'err'); return null; }
     if (v[0] !== v[1]) { App.toast('PIN tidak sama', 'err'); return null; }
     return App.hash(v[0]);
   };
 
+  // Online: masuk dengan akun admin (email + password). PIN hanya untuk mode di perangkat / saat offline.
   App.login = async () => {
+    if (App.cloud.enabled && navigator.onLine) return App.cloud.login();
     const A = App.S.admin;
     if (!A.pinHash) {
       const h = await App.newPin('Belum ada PIN admin, buat PIN baru');
@@ -127,9 +129,11 @@
       A.pinHash = h;
       App.save(true);
     } else {
-      const v = await App.dialog({ title: 'Masuk Admin', fields: [{ label: 'PIN admin', type: 'password' }], ok: 'Masuk' });
+      const v = await App.dialog({ title: App.cloud.enabled ? 'Masuk Admin (offline)' : 'Masuk Admin',
+        text: App.cloud.enabled ? 'Tidak ada koneksi internet. Masuk dengan PIN perangkat ini (bukan password akun). Data dikirim ke server saat internet kembali.' : '',
+        fields: [{ label: 'PIN admin', type: 'password', numeric: true }], ok: 'Masuk' });
       if (!v) return;
-      if (App.hash(v[0]) !== A.pinHash) return App.toast('PIN salah', 'err');
+      if (App.hash(v[0]) !== A.pinHash) return App.toast(App.cloud.enabled ? 'PIN salah (saat offline, pakai PIN perangkat, bukan password akun)' : 'PIN salah', 'err');
     }
     sessionStorage.setItem('wb-admin', '1');
     App.toast('Mode admin aktif');
@@ -157,7 +161,15 @@
         App.toast('Simulasi selesai, data asli dipulihkan');
       });
     }
-    else if (act === 'logout') { sessionStorage.removeItem('wb-admin'); App.toast('Keluar dari mode admin'); App.go('dashboard'); App.rerender(); }
+    else if (act === 'logout') {
+      (async () => {
+        if (App.cloud.admin && !(await App.cloud.logout())) return;
+        sessionStorage.removeItem('wb-admin');
+        App.toast('Keluar dari mode admin');
+        App.go('dashboard');
+        App.rerender();
+      })();
+    }
   });
 
   window.addEventListener('hashchange', () => { App.render(); window.scrollTo(0, 0); });
@@ -276,6 +288,10 @@
       document.getElementById('app').innerHTML = `<div class="card"><h2>Gagal memuat data</h2><pre>${App.esc(e.stack || e)}</pre></div>`;
       return;
     }
+    // Ambil data online dulu (maks. ±6 detik); kalau lambat/offline, tampilkan data perangkat lalu perbarui saat siap.
+    const cloud = App.cloud.init().catch((e) => console.warn('Sinkron online gagal:', e));
+    const ready = await Promise.race([cloud.then(() => true), new Promise((r) => setTimeout(() => r(false), 6000))]);
     App.render();
+    if (!ready) cloud.then(() => App.rerender());
   };
 })(window.App);

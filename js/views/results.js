@@ -98,7 +98,8 @@
       };
       // Ambil data terbaru dari database sebelum ganti slide (admin bisa input di tab/jendela lain).
       const refreshThenShow = async (step) => {
-        const fresh = await App.db.get('kv', 'state');
+        // Tampilan publik online diperbarui otomatis lewat realtime, jadi tidak membaca database perangkat.
+        const fresh = App.cloud.publicMode ? null : await App.db.get('kv', 'state');
         if (fresh) App.S = App.migrate(fresh);
         show(step);
       };

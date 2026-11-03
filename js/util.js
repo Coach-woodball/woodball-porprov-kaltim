@@ -134,7 +134,8 @@ window.App = window.App || {};
     const el = document.createElement('div');
     el.className = 'dlg-overlay';
     el.innerHTML = `<form class="dlg glass" autocomplete="off"><h3>${App.esc(title)}</h3>${text ? `<p class="dlg-text">${App.esc(text)}</p>` : ''}
-      ${fields.map((f, i) => `<label>${App.esc(f.label)}<input name="f${i}" type="${f.type || 'text'}" ${f.type === 'password' ? 'inputmode="numeric"' : ''}></label>`).join('')}
+      ${fields.map((f, i) => `<label>${App.esc(f.label)}<input name="f${i}" type="${f.type || 'text'}" ${f.numeric ? 'inputmode="numeric"' : ''}
+        autocomplete="${f.type === 'email' ? 'username' : f.type === 'password' && !f.numeric ? 'current-password' : 'off'}"></label>`).join('')}
       <div class="row gap dlg-foot">${cancel ? `<button type="button" class="btn ghost" data-cancel>${App.esc(cancel)}</button>` : ''}<button class="btn ${danger ? 'danger solid' : ''}">${App.esc(ok)}</button></div></form>`;
     document.body.appendChild(el);
     const form = el.querySelector('form');
