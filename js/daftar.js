@@ -99,6 +99,26 @@
       + (chk.warns.length ? `<div class="reg-warn">⚠️ ${esc(chk.warns.join(' · '))}</div>` : '');
   }
 
+  // ---------- tema: ikut sistem / terang / gelap (disimpan per perangkat, sama dengan aplikasi utama) ----------
+  const THEMES = ['auto', 'light', 'dark'];
+  const THEME_LABEL = { auto: 'Tema: ikut sistem', light: 'Tema: terang', dark: 'Tema: gelap' };
+  const THEME_ICON = {
+    light: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    dark: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/>',
+    auto: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>',
+  };
+  const theme = () => { try { return localStorage.getItem('wb-theme') || 'auto'; } catch (e) { return 'auto'; } };
+  function setTheme(t) {
+    try { localStorage.setItem('wb-theme', t); } catch (e) { /* abaikan */ }
+    if (t === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', t);
+  }
+  const themeBtn = () => {
+    const t = theme();
+    return `<button type="button" class="icon-btn reg-theme" id="d-theme" title="${THEME_LABEL[t]}" aria-label="${THEME_LABEL[t]}">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${THEME_ICON[t]}</svg></button>`;
+  };
+
   // ---------- tampilan ----------
   function header() {
     const E = C.event, reg = C.registration;
@@ -109,7 +129,7 @@
         <h1>${esc(E.sport)} · ${esc(E.shortName)}</h1>
         <p class="muted">${esc(App.fmtDateRange(E.dateStart, E.dateEnd))} · ${esc(E.venue)}, ${esc(E.city)}</p>
         ${reg.deadline ? `<span class="pill ${late ? 'live' : 'ok'}">Batas pendaftaran ${esc(App.fmtDate(reg.deadline))}${late ? ' · sudah lewat' : ''}</span>` : ''}
-      </div></header>
+      </div>${themeBtn()}</header>
       ${reg.note ? `<div class="card reg-note">${esc(reg.note).replace(/\n/g, '<br>')}</div>` : ''}`;
   }
 
@@ -461,6 +481,11 @@
       if (edit) { App.toast('Simpan atau batalkan isian atlet dulu', 'err'); return; }
       document.getElementById('reg-print').innerHTML = printHtml();
       setTimeout(() => window.print(), 300); // beri waktu gambar dimuat
+    } else if (b.id === 'd-theme') {
+      const next = THEMES[(THEMES.indexOf(theme()) + 1) % THEMES.length];
+      setTheme(next);
+      b.outerHTML = themeBtn();
+      App.toast(THEME_LABEL[next]);
     } else if (b.id === 'd-reset') {
       if (!(await App.ask('Hapus semua isian di formulir ini? Berkas yang sudah diunduh tidak terpengaruh.'))) return;
       D = newDraft(); edit = null;

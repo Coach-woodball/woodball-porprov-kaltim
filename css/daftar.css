@@ -63,3 +63,6 @@ tr.dim td { opacity: .5; }
   #reg { display: none !important; }
   #reg-print { display: block; }
 }
+.reg-head { position: relative; }
+.reg-theme { position: absolute; top: 14px; right: 14px; }
+.reg-title { padding-right: 44px; }
