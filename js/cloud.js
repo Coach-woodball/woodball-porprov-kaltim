@@ -46,6 +46,9 @@
     stroke: stripScans(S.stroke),
     fairway: stripScans(S.fairway),
     logoUrls: Object.fromEntries((S.event.logos || []).map((id) => [id, publicUrl(id)])),
+    // dipakai formulir pendaftaran online (tanpa kode akses)
+    validation: S.validation,
+    registration: App.reg.publicSettings(S.registration),
     publishedAt: new Date().toISOString(),
   });
 
@@ -131,6 +134,7 @@
       } else setStatus('ok');
       subscribeAdmin();
       syncFiles();
+      if (App.reg.pullOnline) App.reg.pullOnline(); // kiriman pendaftaran yang masuk selama admin tidak membuka aplikasi
     } catch (e) {
       setStatus(navigator.onLine ? 'error' : 'offline', e.message);
     }
@@ -151,6 +155,10 @@
             syncFiles();
           }
         } catch (e) { /* abaikan, dicoba lagi saat simpan berikutnya */ }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'registrations' }, () => {
+        App.toast('📨 Ada kiriman pendaftaran baru');
+        if (App.reg.pullOnline) App.reg.pullOnline();
       })
       .subscribe();
   }

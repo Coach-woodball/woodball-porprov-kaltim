@@ -33,8 +33,22 @@
       config: { maxPerKontingen: config.maxPerKontingen || null, sourceEvent: config.sourceEvent || null },
     })),
     validation: { ...S.validation },
-    registration: { ...R.defaults(), ...(S.registration || {}) },
+    registration: R.publicSettings(S.registration),
   });
+
+  // Pengaturan formulir tanpa kode akses kontingen (kode hanya disimpan admin dan di server).
+  R.publicSettings = (reg) => {
+    const { codes, ...rest } = { ...R.defaults(), ...(reg || {}) };
+    return rest;
+  };
+
+  // Kode akses acak, tanpa huruf/angka yang mirip (O/0, I/1).
+  R.newCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const buf = new Uint32Array(6);
+    crypto.getRandomValues(buf);
+    return Array.from(buf, (n) => chars[n % chars.length]).join('');
+  };
 
   R.nikOk = (nik) => /^\d{16}$/.test(nik || '');
 

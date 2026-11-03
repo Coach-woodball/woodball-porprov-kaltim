@@ -65,7 +65,15 @@
     };
   });
 
-  // Urutan sumber: ?lokal -> data admin; lalu pendaftaran.json (versi online); lalu data admin; lalu default.
+  // Koneksi server (tanpa login): membaca pengaturan publik dan mengirim pendaftaran dengan kode akses.
+  const CFG = App.CLOUD || {};
+  let sb = null;
+  try {
+    if (CFG.url && window.supabase) sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: false, autoRefreshToken: false } });
+  } catch (e) { sb = null; }
+  const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('Koneksi lambat / terputus')), ms))]);
+
+  // Urutan sumber: ?lokal -> data admin; lalu server (pengaturan terbaru); lalu pendaftaran.json; lalu data admin; lalu default.
   async function loadConfig() {
     const fromAdmin = async () => {
       const a = await adminState();
@@ -74,6 +82,13 @@
     if (new URLSearchParams(location.search).has('lokal')) {
       const c = await fromAdmin();
       if (c) return [c, 'lokal'];
+    }
+    if (sb) {
+      try {
+        const { data } = await withTimeout(sb.from('public_state').select('state').eq('id', 'main').maybeSingle(), 8000);
+        const ps = data && data.state;
+        if (ps && ps.events) return [{ ...R.buildConfig({ ...App.defaultState(), ...ps }, (id) => (ps.logoUrls || {})[id]), exported: ps.publishedAt }, 'server'];
+      } catch (e) { /* offline: pakai sumber berikutnya */ }
     }
     try {
       const r = await fetch('pendaftaran.json', { cache: 'no-store' });
@@ -207,6 +222,7 @@
   function problems() {
     const out = [];
     if (!D.kontingenId) out.push('Kabupaten/Kota belum dipilih.');
+    if (sb && !(D.code || '').trim()) out.push('Kode akses belum diisi (dari panitia).');
     if (!D.officials.some((o) => o.name.trim())) out.push('Belum ada official/penanggung jawab.');
     if (!D.athletes.length) out.push('Belum ada atlet.');
     const inc = D.athletes.filter((a) => R.check(C, a).missing.length).length;
@@ -234,7 +250,10 @@
     root.innerHTML = `<div class="reg-wrap">
       ${header()}
       <section class="card"><h2><span class="step">1</span> Kontingen</h2>
-        <label>Kabupaten / Kota<select id="d-k"><option value="">- pilih kabupaten/kota -</option>${options(C.kontingen.map((x) => [x.id, x.name]), D.kontingenId)}</select></label>
+        <div class="grid3">
+          <label>Kabupaten / Kota<select id="d-k"><option value="">- pilih kabupaten/kota -</option>${options(C.kontingen.map((x) => [x.id, x.name]), D.kontingenId)}</select></label>
+          ${sb ? `<label>Kode akses <small class="muted">(dari panitia, 6 huruf/angka)</small><input id="d-code" class="reg-code" value="${esc(D.code || '')}" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="mis. K7QM2P"></label>` : ''}
+        </div>
       </section>
 
       <section class="card"><h2><span class="step">2</span> Official &amp; Pelatih</h2>
@@ -257,13 +276,18 @@
 
       <section class="card"><h2><span class="step">5</span> Kirim ke panitia</h2>
         ${probs.length ? `<div class="reg-probs"><b>Periksa dulu:</b><ul>${probs.map((p) => `<li>${esc(p)}</li>`).join('')}</ul></div>` : '<p class="pill ok">Data siap dikirim</p>'}
+        ${D.sentAt ? `<div class="reg-sent">✅ Terkirim ke panitia ${esc(new Date(D.sentAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }))}${D.sentCount != null ? ` · ${D.sentCount} atlet` : ''}.
+          <span class="small">Kalau ada perubahan, perbaiki lalu kirim lagi. Kiriman terbaru yang dipakai panitia.</span></div>` : ''}
         <ol class="small reg-steps">
-          <li>Klik <b>Unduh berkas pendaftaran</b>. File <code>.json</code> tersimpan di folder Download.</li>
-          <li>Kirim file itu ke panitia lewat WhatsApp atau email${contactLine() ? ': <b>' + contactLine() + '</b>' : ''}.</li>
+          ${sb ? `<li>Pastikan <b>kode akses</b> di langkah 1 sudah diisi, lalu klik <b>Kirim ke panitia</b>. Data dan foto langsung masuk ke panitia.</li>
+          <li>Kalau internet bermasalah, klik <b>Unduh berkas</b> lalu kirim file-nya lewat WhatsApp/email${contactLine() ? ': <b>' + contactLine() + '</b>' : ''}.</li>`
+            : `<li>Klik <b>Unduh berkas pendaftaran</b>. File <code>.json</code> tersimpan di folder Download.</li>
+          <li>Kirim file itu ke panitia lewat WhatsApp atau email${contactLine() ? ': <b>' + contactLine() + '</b>' : ''}.</li>`}
           <li>Cetak rekap, tanda tangani oleh penanggung jawab, lalu serahkan sesuai arahan panitia.</li>
         </ol>
         <div class="row gap wrap">
-          <button type="button" class="btn" id="d-download">💾 Unduh berkas pendaftaran</button>
+          ${sb ? `<button type="button" class="btn" id="d-send">📨 ${D.sentAt ? 'Kirim ulang' : 'Kirim ke panitia'}</button>` : ''}
+          <button type="button" class="btn ${sb ? 'ghost' : ''}" id="d-download">💾 Unduh berkas${sb ? '' : ' pendaftaran'}</button>
           ${canShareFiles ? '<button type="button" class="btn ghost" id="d-share">📤 Bagikan berkas</button>' : ''}
           <button type="button" class="btn ghost" id="d-print">🖨️ Cetak rekap</button>
           ${wa ? `<a class="btn ghost" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(`Pendaftaran atlet woodball ${C.event.shortName} - kontingen ${k ? k.name : ''}`)}">💬 Chat panitia</a>` : ''}
@@ -274,7 +298,7 @@
           <button type="button" class="btn sm danger" id="d-reset">Hapus semua isian</button></div>
         </details>
       </section>
-      <p class="muted small c reg-src">${src === 'default' ? 'Pengaturan formulir: bawaan aplikasi' : src === 'lokal' ? 'Pengaturan formulir: data admin di perangkat ini' : 'Pengaturan formulir diperbarui ' + esc(App.fmtDate((C.exported || '').slice(0, 10)))}</p>
+      <p class="muted small c reg-src">${src === 'default' ? 'Pengaturan formulir: bawaan aplikasi' : src === 'lokal' ? 'Pengaturan formulir: data admin di perangkat ini' : src === 'server' ? 'Pengaturan formulir dari server panitia' : 'Pengaturan formulir diperbarui ' + esc(App.fmtDate((C.exported || '').slice(0, 10)))}</p>
     </div>`;
   }
 
@@ -361,6 +385,86 @@
     </section>`;
   }
 
+  // ---------- kirim online ----------
+  // Layar proses sederhana selama mengunggah (tidak bisa ditutup sampai selesai).
+  function busy(text) {
+    const el = document.createElement('div');
+    el.className = 'dlg-overlay';
+    el.innerHTML = `<div class="dlg glass"><h3>Mengirim pendaftaran…</h3><p class="dlg-text" id="busy-t">${esc(text)}</p><div class="busy-bar"><i id="busy-b"></i></div></div>`;
+    document.body.appendChild(el);
+    return {
+      set(t, frac) { el.querySelector('#busy-t').textContent = t; if (frac != null) el.querySelector('#busy-b').style.width = Math.round(frac * 100) + '%'; },
+      close() { el.remove(); },
+    };
+  }
+  const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
+  // Gambar selain JPG/PNG/WebP (mis. GIF/HEIC) diubah ke JPG supaya diterima server.
+  async function uploadable(f) {
+    if (EXT[f.type]) return f;
+    const url = await App.compressImage(f.dataUrl, 1600, 0.8);
+    if (!url.startsWith('data:image/jpeg')) {
+      const img = new Image();
+      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = f.dataUrl; });
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      return { name: f.name, type: 'image/jpeg', dataUrl: c.toDataURL('image/jpeg', 0.8) };
+    }
+    return { name: f.name, type: 'image/jpeg', dataUrl: url };
+  }
+  const errText = (e) => {
+    const m = (e && e.message) || String(e);
+    if (!navigator.onLine || /fetch|network|koneksi|timeout/i.test(m)) return 'Tidak bisa terhubung ke server. Periksa internet lalu coba lagi, atau pakai tombol Unduh berkas.';
+    return m;
+  };
+
+  async function sendOnline() {
+    if (!(await readyToSend())) return;
+    if (!(D.code || '').trim()) {
+      App.notice('Isi kode akses dari panitia di langkah 1 (Kontingen), lalu klik Kirim lagi.', 'Kode akses belum diisi');
+      document.getElementById('d-code').focus();
+      return;
+    }
+    const file = buildFile();
+    const total = file.athletes.reduce((n, a) => n + (a.photo ? 1 : 0) + a.docs.length, 0);
+    const ui = busy('Memeriksa kode akses…');
+    try {
+      const { data: token, error } = await withTimeout(sb.rpc('reg_start', { p_kontingen: D.kontingenId, p_code: D.code.trim() }), 15000);
+      if (error) throw new Error(/kode akses/i.test(error.message) ? 'Kode akses salah untuk kontingen ini. Periksa lagi kode dari panitia.' : error.message);
+      let done = 0;
+      const up = async (f, path) => {
+        f = await uploadable(f);
+        const blob = await (await fetch(f.dataUrl)).blob();
+        const { error: ue } = await withTimeout(sb.storage.from('registrations').upload(`${path}.${EXT[f.type]}`, blob, { contentType: f.type }), 90000);
+        if (ue) throw ue;
+        done++;
+        ui.set(`Mengunggah foto & dokumen ${done} dari ${total}…`, total ? done / total : 1);
+        return { name: f.name, type: f.type, path: `${path}.${EXT[f.type]}` };
+      };
+      ui.set(total ? `Mengunggah foto & dokumen 0 dari ${total}…` : 'Mengirim data…', 0);
+      for (const a of file.athletes) {
+        const base = `${token}/${a.ref.replace(/[^\w-]/g, '')}`;
+        if (a.photo) a.photo = await up(a.photo, `${base}/foto`);
+        const docs = [];
+        for (const [i, d] of a.docs.entries()) docs.push(await up(d, `${base}/dok-${i + 1}`));
+        a.docs = docs;
+      }
+      ui.set('Mengirim data pendaftaran…', 1);
+      const { error: se } = await withTimeout(sb.rpc('reg_submit', { p_token: token, p_payload: file }), 30000);
+      if (se) throw se;
+      ui.close();
+      D.sentAt = new Date().toISOString();
+      D.sentCount = file.athletes.length;
+      saveDraft();
+      render();
+      App.notice(`Pendaftaran kontingen ${(kontingen() || {}).name || ''} (${file.athletes.length} atlet, ${file.officials.length} official) sudah diterima server panitia.\n\n`
+        + 'Kalau ada perubahan, perbaiki di formulir ini lalu klik Kirim ulang. Jangan lupa cetak rekap dan tanda tangani.', 'Terkirim ✓');
+    } catch (e) {
+      ui.close();
+      App.notice(errText(e), 'Gagal mengirim');
+    }
+  }
+
   // ---------- unggah gambar/dokumen ----------
   async function readImage(file, maxSide, quality) {
     const url = await App.compressImage(await App.readFile(file), maxSide, quality);
@@ -379,6 +483,12 @@
   // ---------- event ----------
   root.addEventListener('input', (e) => {
     const t = e.target;
+    if (t.id === 'd-code') {
+      t.value = t.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      D.code = t.value;
+      saveDraft();
+      return;
+    }
     if (t.dataset.of) {
       D.officials[+t.closest('.off-row').dataset.i][t.dataset.of] = t.value;
       saveDraft();
@@ -468,6 +578,8 @@
       edit.photo = null; render();
     } else if (b.dataset.docDel) {
       edit.docs.splice(+b.dataset.docDel, 1); render();
+    } else if (b.id === 'd-send') {
+      await sendOnline();
     } else if (b.id === 'd-download') {
       if (!(await readyToSend())) return;
       App.download(fileName(), JSON.stringify(buildFile()));
