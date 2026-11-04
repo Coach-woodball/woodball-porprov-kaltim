@@ -558,21 +558,9 @@ a.bm:hover { border-color: var(--brand); transform: translateY(-1px); }
 .reg-track > div.ok { background: var(--ok-bg); }
 .reg-track small { color: var(--muted); font-size: .75rem; }
 .reg-sub summary { font-size: 1.02rem; }
-.reg-offs { margin: 8px 0; font-size: .88rem; }
 .reg-kpick { margin: 8px 0; color: var(--red-tx); }
-.reg-thumb, .ath-thumb { width: 40px; height: 52px; object-fit: cover; border-radius: 7px; border: 1px solid var(--line); display: block; }
-.ath-thumb { width: 30px; height: 38px; display: inline-block; vertical-align: middle; margin-right: 8px; }
 .reg-warn { font-size: .8rem; color: var(--warn-tx); font-weight: 600; }
 tr.dim td { opacity: .5; }
-.ath-media { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; margin: 6px 0 4px; }
-.ath-media .photo-box { width: 90px; height: 120px; border-radius: 10px; overflow: hidden; background: var(--soft); border: 1px dashed var(--line); display: grid; place-items: center; font-size: .75rem; color: var(--muted); text-align: center; }
-.ath-media .photo-box img { width: 100%; height: 100%; object-fit: cover; }
-.ath-media .scans { margin-top: 0; }
-.k-offs { font-size: .8rem; color: var(--muted); }
-.ath-nm { display: inline-flex; flex-direction: column; vertical-align: middle; }
-.ath-nm small { font-size: .74rem; }
-.page .reg-pt td.ph { width: 16mm; padding: 1px !important; text-align: center; }
-.page .reg-pt td.ph img { width: 14mm; height: 18mm; object-fit: cover; display: block; margin: auto; }
 
 /* dialog isian (PIN admin) */
 .dlg-overlay { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, .35); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); animation: dlgIn .15s ease; }
@@ -588,4 +576,37 @@ tr.dim td { opacity: .5; }
 .sim-banner { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; border: 2px dashed var(--warn-tx); background: linear-gradient(var(--warn-bg), var(--warn-bg)), var(--glass); }
 .cloud-pill { white-space: nowrap; }
 @media (max-width: 900px) { .cloud-pill { max-width: 34px; overflow: hidden; padding: 3px 8px; } }
-.reg-codeview { font-size: .95rem; font-weight: 700; letter-spacing: .2em; }
+
+/* ---------- beranda umum pra-kegiatan ---------- */
+.pre-hero { position: relative; overflow: hidden; border-radius: 26px; padding: 36px 28px 32px; margin-bottom: var(--gap); text-align: center; color: #fff; display: flex; flex-direction: column; align-items: center;
+  background: radial-gradient(120% 140% at 0% 0%, var(--brand), transparent 62%), radial-gradient(120% 140% at 100% 100%, var(--accent), transparent 62%), #0b1f16; box-shadow: var(--shadow); }
+.pre-hero .hero-logos { justify-content: center; flex-wrap: wrap; }
+.pre-hero .hero-logos .logo { height: 76px; }
+.pre-kicker { margin: 16px 0 4px; font-size: .78rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+.pre-hero h1 { font-size: clamp(1.45rem, 3.2vw, 2.25rem); line-height: 1.2; max-width: 820px; margin: 0; color: #fff; }
+.pre-meta { margin: 8px 0 0; opacity: .9; }
+.cd-title { margin: 24px 0 8px; font-size: .84rem; opacity: .85; }
+.cd-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: min(520px, 100%); }
+.cd-unit { padding: 14px 6px 10px; border-radius: 16px; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .22); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); display: grid; gap: 2px; }
+.cd-unit b { font-size: clamp(1.7rem, 5vw, 2.7rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.cd-unit span { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; opacity: .85; }
+.pre-cta { margin-top: 22px; background: #fff; color: #0b1f16; padding: 11px 26px; box-shadow: 0 8px 22px rgba(0, 0, 0, .25); }
+.pre-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--gap); align-items: start; }
+.pre-side .card { margin-bottom: var(--gap); }
+.pre-side h3 { margin: 0 0 10px; }
+.pre-side p { margin: 0 0 6px; }
+.info-big { font-size: 1.15rem; font-weight: 700; }
+.pre-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.pre-stats b { display: block; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.pre-stats span { font-size: .76rem; color: var(--muted); }
+.an-board h2 { margin: 0 0 12px; }
+.an-post { padding: 12px 0 12px 14px; border-left: 3px solid var(--line); }
+.an-post + .an-post { margin-top: 6px; }
+.an-post.pinned { border-left-color: var(--accent); }
+.an-post time { font-size: .76rem; color: var(--muted); }
+.an-post h3 { margin: 2px 0 4px; font-size: 1rem; }
+.an-post p { margin: 0; font-size: .92rem; }
+.an-item { display: flex; gap: 14px; justify-content: space-between; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.an-item p { margin: 4px 0 0; font-size: .92rem; }
+@media (max-width: 860px) { .pre-grid { grid-template-columns: minmax(0, 1fr); } .pre-hero { padding: 26px 16px; border-radius: 20px; } .pre-hero .hero-logos .logo { height: 56px; } .cd-unit { padding: 10px 2px 8px; } }
+@media (max-width: 520px) { .topbar .brand > div { display: none; } }

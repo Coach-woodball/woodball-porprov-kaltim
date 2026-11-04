@@ -5,19 +5,13 @@
   R.FILE_APP = 'woodball-pendaftaran'; // berkas kiriman official
   R.CONFIG_APP = 'woodball-formulir'; // pendaftaran.json (pengaturan formulir untuk versi online)
 
-  R.defaults = () => ({
-    open: true,
-    deadline: '',
-    contactName: '',
-    contactPhone: '',
-    note: '',
-    requireNik: true,
-    requirePhoto: true,
-    requireDocs: true,
-    roles: 'Manajer Tim, Pelatih, Asisten Pelatih, Official',
-  });
+  R.defaults = () => ({ open: true, deadline: '', contactName: '', contactPhone: '', note: '' });
 
-  R.roles = (reg) => (reg.roles || '').split(',').map((s) => s.trim()).filter(Boolean);
+  // Hanya pengaturan yang boleh terbaca publik.
+  R.publicSettings = (reg) => {
+    const { open, deadline, contactName, contactPhone, note } = { ...R.defaults(), ...(reg || {}) };
+    return { open, deadline, contactName, contactPhone, note };
+  };
 
   // Konfigurasi ringkas untuk formulir. logoUrl(id) -> dataURL logo.
   R.buildConfig = (S, logoUrl) => ({
@@ -36,21 +30,11 @@
     registration: R.publicSettings(S.registration),
   });
 
-  // Pengaturan formulir tanpa kode akses kontingen (kode hanya disimpan admin dan di server).
-  R.publicSettings = (reg) => {
-    const { codes, ...rest } = { ...R.defaults(), ...(reg || {}) };
-    return rest;
+  // Putra/putri mengikuti nomor yang dipilih. Nomor mix berlaku untuk keduanya, jadi null bila hanya memilih mix.
+  R.genderOf = (C, evIds) => {
+    const ev = (evIds || []).map((id) => C.events.find((e) => e.id === id)).find((e) => e && e.gender !== 'X');
+    return ev ? ev.gender : null;
   };
-
-  // Kode akses acak, tanpa huruf/angka yang mirip (O/0, I/1).
-  R.newCode = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    const buf = new Uint32Array(6);
-    crypto.getRandomValues(buf);
-    return Array.from(buf, (n) => chars[n % chars.length]).join('');
-  };
-
-  R.nikOk = (nik) => /^\d{16}$/.test(nik || '');
 
   // Jumlah nomor yang dihitung untuk batas per atlet (Single + Team Stroke dihitung 1 bila diatur).
   R.countEvents = (C, evIds) => {
@@ -62,19 +46,13 @@
     return n;
   };
 
-  // Kekurangan data wajib dan peringatan aturan untuk satu atlet.
-  // C = {events, validation, registration}; a = {name, gender, birth, nik, events, photo, docs}
+  // Kekurangan data wajib dan peringatan aturan untuk satu atlet. C = {events, validation}; a = {name, gender, events}
   R.check = (C, a) => {
     const missing = [];
     const warns = [];
-    const reg = C.registration || R.defaults();
     if (!a.name) missing.push('nama');
-    if (!a.birth) missing.push('tanggal lahir');
-    if (reg.requireNik && !a.nik) missing.push('NIK');
-    else if (a.nik && !R.nikOk(a.nik)) warns.push('NIK harus 16 angka');
-    if (reg.requirePhoto && !a.photo) missing.push('pas foto');
-    if (reg.requireDocs && !(a.docs || []).length) missing.push('dokumen identitas');
-    if (!(a.events || []).length) missing.push('nomor pertandingan');
+    if (!(a.events || []).length) missing.push('nomor tanding');
+    else if (!a.gender) missing.push('kategori putra/putri');
 
     const V = C.validation || {};
     if (V.enabled !== false) {
@@ -82,7 +60,6 @@
       const n = R.countEvents(C, a.events);
       if (V.maxEventsPerAthlete && n > V.maxEventsPerAthlete) warns.push(`ikut ${n} nomor, maksimal ${V.maxEventsPerAthlete}`);
       if (V.separateDisciplines && evs.some((x) => x.discipline === 'stroke') && evs.some((x) => x.discipline === 'fairway')) warns.push('Stroke dan Fairway tidak boleh dirangkap');
-      if (V.minBirthDate && a.birth && a.birth < V.minBirthDate) warns.push(`lahir sebelum batas usia (${App.fmtDate(V.minBirthDate)})`);
       evs.forEach((ev) => {
         if (ev.gender !== 'X' && a.gender && ev.gender !== a.gender) warns.push(`${ev.code} bukan untuk ${a.gender === 'L' ? 'putra' : 'putri'}`);
         if (ev.discipline === 'stroke' && ev.kind === 'team' && ev.config.sourceEvent && !evs.some((x) => x.id === ev.config.sourceEvent)) {

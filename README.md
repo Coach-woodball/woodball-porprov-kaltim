@@ -23,8 +23,9 @@ Data tetap tersimpan di browser masing-masing perangkat, bukan di server.
 |---|---|
 | Atur identitas event, logo, penandatangan, teks sertifikat, validasi | **Pengaturan** |
 | Cek daftar Kab/Kota | **Kontingen** |
-| Bagikan formulir pendaftaran ke official, lalu impor dan terima berkas kiriman mereka | **Pendaftaran** |
-| Input atlet (manual atau tempel dari Excel), NIK, pas foto, dokumen, dan nomor yang diikuti | **Atlet** |
+| Atur formulir, lalu periksa dan terima kiriman official | **Pendaftaran** |
+| Tulis pengumuman untuk beranda umum | **Pengumuman** |
+| Input atlet (manual atau tempel dari Excel) dan nomor yang diikuti | **Atlet** |
 | Klik **⚡ Buat entri otomatis**, lalu cek pasangan/tim dan aturan tiap nomor | **Nomor & Entri** |
 | Undi pairing (acak / ranking / manual), input skor per gate, upload scan score card | **Stroke** |
 | Undi grup atau seed, input skor per pertandingan, buat bagan | **Fairway** |
@@ -34,12 +35,12 @@ Data tetap tersimpan di browser masing-masing perangkat, bukan di server.
 
 ## Pendaftaran oleh official (`daftar.html`)
 
-1. Admin membuka menu **Pendaftaran**: atur batas waktu, kontak panitia, data wajib, lalu salin link formulir / pesan undangan WhatsApp.
-2. Official membuka link di HP/laptop, memilih Kab/Kota, mengisi official dan atlet (nama, tanggal lahir, NIK, pas foto, dokumen identitas, nomor). Isian tersimpan otomatis di browser official.
-3. Official mengunduh **berkas pendaftaran** (`Pendaftaran-Woodball-<KAB>-….json`) dan mengirimnya ke panitia, plus mencetak rekap bertanda tangan.
-4. Admin mengimpor berkas di menu **Pendaftaran**, memeriksa catatan, lalu **Terima** (atlet masuk ke menu Atlet, official tersimpan di Kontingen).
+1. Admin membuka menu **Pendaftaran**: atur batas waktu dan kontak panitia, lalu salin pesan undangan WhatsApp.
+2. Official membuka menu **Pendaftaran** di halaman umum, memilih Kab/Kota, mengetik ulang namanya dengan huruf kapital, lalu mengisi nama atlet dan nomor tanding.
+3. Official mengklik **Kirim ke panitia**. Kalau internet bermasalah, **Unduh berkas** lalu kirim file-nya lewat WhatsApp/email.
+4. Kiriman masuk ke menu **Pendaftaran**. Admin memeriksa catatan, lalu **Terima** atau **Tolak**. Nama kabupaten bisa diketik siapa saja, jadi setiap kiriman tetap perlu diperiksa.
 
-Formulir online memakai `pendaftaran.json` (logo, nomor, kontingen, aturan). Buat ulang lewat **Unduh pengaturan formulir** setiap kali pengaturan berubah, simpan sejajar `index.html`, lalu publish.
+Formulir mengambil logo, kontingen, nomor, dan pengaturan dari server. `pendaftaran.json` hanya dipakai kalau server tidak bisa dihubungi.
 
 ## Aturan (default dari THB, bisa diubah per nomor)
 
@@ -51,7 +52,7 @@ Formulir online memakai `pendaftaran.json` (logo, nomor, kontingen, aturan). Bua
   Pemenang gate mendapat nilai 1. Jika sama setelah 12 gate, lanjut sudden death (PK1, PK2, …). Pertandingan otomatis selesai jika selisih sudah tidak terkejar.
 - **Team Fairway:** 3 partai (Tunggal I, Ganda, Tunggal II), best of 3, dengan format yang bisa dipilih.
 - **Juara 3:** perebutan juara 3, juara 3 bersama, atau tanpa juara 3.
-- **Validasi** hanya berupa peringatan dan bisa dinyalakan/dimatikan: maks. 2 nomor per atlet, Stroke ≠ Fairway, batas usia, batas entri per kontingen.
+- **Validasi** hanya berupa peringatan dan bisa dinyalakan/dimatikan: maks. 2 nomor per atlet, Stroke ≠ Fairway, batas entri per kontingen.
 
 ## Struktur kode
 
@@ -71,4 +72,4 @@ js/reg.js           aturan & format berkas pendaftaran (dipakai admin dan formul
 daftar.html         formulir pendaftaran untuk official (js/daftar.js, css/daftar.css)
 ```
 
-Tanpa build tool dan tanpa library eksternal, jadi bisa langsung di-hosting di Vercel atau GitHub Pages.
+Tanpa build tool, jadi bisa langsung di-hosting di Vercel atau GitHub Pages. Sinkron online memakai Supabase (lihat `js/cloud.js`).

@@ -7,6 +7,8 @@
     dashboard: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
     kontingen: '<path d="M5 21V4m0 0h12l-2.5 4.5L17 13H5"/>',
     athletes: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.7 3 2.5 3.5 5.2"/>',
+    announcements: '<path d="M4 10v4l3 .5 2 5.5h3l-1.6-5L20 18V6L7 9.5z"/>',
+    daftar: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/>',
     registration: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14l2 2 4-4"/>',
     events: '<rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 3.5h6M9 10h6M9 14h6M9 18h3.5"/>',
     stroke: '<path d="M12 18V3l7 3.5-7 3.5"/><ellipse cx="12" cy="19" rx="7" ry="2.5"/>',
@@ -32,8 +34,8 @@
   };
 
   const NAV = [
-    ['dashboard', false], ['kontingen', true], ['athletes', true], ['registration', true], ['events', true], ['stroke', true], ['fairway', true],
-    ['results', false], ['print', false], ['display', false], ['settings', true], ['backup', true],
+    ['dashboard', false], ['daftar', 'public'], ['kontingen', true], ['athletes', true], ['registration', true], ['announcements', true], ['events', true], ['stroke', true], ['fairway', true],
+    ['results', false], ['print', false], ['display', true], ['settings', true], ['backup', true],
   ];
 
   App.route = () => {
@@ -50,8 +52,9 @@
   function layout(inner, routeName) {
     const E = App.S.event;
     const admin = App.isAdmin();
-    const nav = NAV.filter(([, adm]) => admin || !adm).map(([key]) =>
-      `<a href="#/${key}" class="${routeName === key ? 'active' : ''}">${App.icon(key)}<span>${App.esc(App.S.menu[key] || key)}</span></a>`).join('');
+    // 'public': hanya untuk pengunjung umum; daftar membuka formulir pendaftaran.
+    const nav = NAV.filter(([, adm]) => (adm === 'public' ? !admin : admin || !adm)).map(([key]) =>
+      `<a href="${key === 'daftar' ? 'daftar.html' : '#/' + key}" class="${routeName === key ? 'active' : ''}">${App.icon(key)}<span>${App.esc(App.S.menu[key] || key)}</span></a>`).join('');
     const th = App.theme();
     return `
       <header class="topbar glass no-print">

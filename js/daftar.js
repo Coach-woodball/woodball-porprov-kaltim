@@ -1,5 +1,6 @@
 // Formulir pendaftaran atlet untuk official kontingen (daftar.html). Berjalan mandiri tanpa mode admin:
-// isian tersimpan sebagai draf di browser official, lalu diunduh sebagai berkas untuk dikirim ke panitia.
+// official memilih kabupaten/kota dan mengetik ulang namanya, lalu mengisi nama atlet dan nomor tanding.
+// Isian tersimpan sebagai draf di browser official, lalu dikirim ke server (atau diunduh sebagai berkas cadangan).
 (function (App) {
   const R = App.reg, esc = App.esc;
   const root = document.getElementById('reg');
@@ -7,6 +8,7 @@
   let D = null; // draf pendaftaran official
   let edit = null; // atlet yang sedang diisi (salinan, disimpan ke D saat "Simpan atlet")
   let src = 'default';
+  let sending = false;
 
   // ---------- draf di IndexedDB terpisah, tidak menyentuh data admin ----------
   const idb = () => new Promise((resolve, reject) => {
@@ -33,7 +35,7 @@
         const db = await idb();
         db.transaction('kv', 'readwrite').objectStore('kv').put({ ...D, updated: Date.now() }, 'draft');
       } catch (e) {
-        if (!draftWarned) App.toast('Isian tidak tersimpan otomatis di browser ini, segera unduh berkas setelah selesai', 'err');
+        if (!draftWarned) App.toast('Isian tidak tersimpan otomatis di browser ini, segera kirim setelah selesai', 'err');
         draftWarned = true;
       }
     }, 300);
@@ -65,7 +67,7 @@
     };
   });
 
-  // Koneksi server (tanpa login): membaca pengaturan publik dan mengirim pendaftaran dengan kode akses.
+  // Koneksi server (tanpa login): membaca pengaturan publik dan mengirim pendaftaran.
   const CFG = App.CLOUD || {};
   let sb = null;
   try {
@@ -102,7 +104,7 @@
     return [R.buildConfig(App.defaultState(), () => ''), 'default'];
   }
 
-  const newDraft = () => ({ kontingenId: '', officials: [{ id: App.uid('o_'), role: R.roles(C.registration)[0] || 'Manajer Tim', name: '', phone: '' }], athletes: [] });
+  const newDraft = () => ({ kontingenId: '', verified: '', athletes: [] });
   const evById = (id) => C.events.find((e) => e.id === id);
   const kontingen = () => C.kontingen.find((k) => k.id === D.kontingenId);
   const empty = (msg) => `<div class="empty">${msg}</div>`;
@@ -138,7 +140,8 @@
   function header() {
     const E = C.event, reg = C.registration;
     const late = reg.deadline && App.today() > reg.deadline;
-    return `<header class="card reg-head">
+    return `<a class="reg-back" href="index.html">← Beranda</a>
+      <header class="card reg-head">
       ${C.logos.length ? `<div class="reg-logos">${C.logos.map((u) => `<img src="${u}" alt="">`).join('')}</div>` : ''}
       <div class="reg-title"><small>Formulir Pendaftaran Atlet</small>
         <h1>${esc(E.sport)} · ${esc(E.shortName)}</h1>
@@ -154,44 +157,34 @@
     return `${esc(reg.contactName || 'Panitia')}${reg.contactPhone ? ` (${esc(reg.contactPhone)})` : ''}`;
   }
 
+  // Nomor lawan jenis dinonaktifkan setelah atlet memilih nomor putra atau putri.
   function evChecks(a) {
-    const evs = C.events.filter((ev) => ev.gender === 'X' || ev.gender === a.gender);
+    const g = R.genderOf(C, a.events);
     const group = (disc, label) => {
-      const list = evs.filter((ev) => ev.discipline === disc);
+      const list = C.events.filter((ev) => ev.discipline === disc);
       if (!list.length) return '';
-      return `<div class="evgroup"><span class="evgroup-t ${disc}">${label}</span><div class="evchips">${list.map((ev) =>
-        `<label class="evchip"><input type="checkbox" name="ev" value="${ev.id}" ${a.events.includes(ev.id) ? 'checked' : ''}>
-          <span><b>${esc(ev.code)}</b><small>${esc(ev.name)}</small></span></label>`).join('')}</div></div>`;
+      return `<div class="evgroup"><span class="evgroup-t ${disc}">${label}</span><div class="evchips">${list.map((ev) => {
+        const off = g && ev.gender !== 'X' && ev.gender !== g;
+        return `<label class="evchip"><input type="checkbox" name="ev" value="${ev.id}" ${a.events.includes(ev.id) ? 'checked' : ''} ${off ? 'disabled' : ''}>
+          <span><b>${esc(ev.code)}</b><small>${esc(ev.name)}</small></span></label>`;
+      }).join('')}</div></div>`;
     };
     return group('stroke', 'Stroke') + group('fairway', 'Fairway');
   }
 
-  function docThumbs(docs) {
-    return docs.map((f, i) => `<div class="scan">${f.type.startsWith('image/') ? `<img src="${f.dataUrl}" alt="">` : '<div class="pdf">PDF</div>'}
-      <button type="button" class="x" data-doc-del="${i}" title="Hapus">×</button><small>${esc(f.name)}</small></div>`).join('');
-  }
+  // Hanya muncul kalau atlet cuma ikut nomor mix: putra/putri tidak bisa dibaca dari nomornya.
+  const mixChoice = (a) => (a.events.length && !R.genderOf(C, a.events)
+    ? `<label class="ed-mix">Atlet ini putra atau putri? <small class="muted">(perlu untuk pasangan nomor mix)</small>
+        <select id="ed-gender"><option value="">- pilih -</option>${options([['L', 'Putra'], ['P', 'Putri']], a.gender)}</select></label>` : '');
 
   function editor() {
     const a = edit;
     const isNew = !D.athletes.some((x) => x.id === a.id);
     return `<div class="ath-editor" id="editor"><h3>${isNew ? 'Atlet baru' : 'Ubah atlet'}</h3>
-      <div class="ed-grid">
-        <div class="ed-photo">
-          <div class="photo-box">${a.photo ? `<img src="${a.photo.dataUrl}" alt="">` : '<span>Pas foto<br><small>3×4</small></span>'}</div>
-          <label class="btn sm ghost upload">📷 ${a.photo ? 'Ganti foto' : 'Upload foto'}<input type="file" accept="image/*" id="ed-photo" hidden></label>
-          ${a.photo ? '<button type="button" class="btn sm danger" id="ed-photo-del">Hapus foto</button>' : ''}
-        </div>
-        <div class="grid3 ed-fields">
-          <label>Nama lengkap (sesuai KTP/KK)<input id="ed-name" value="${esc(a.name)}" autocomplete="off"></label>
-          <label>Jenis kelamin<select id="ed-gender">${options([['L', 'Putra'], ['P', 'Putri']], a.gender)}</select></label>
-          <label>Tanggal lahir<input type="date" id="ed-birth" value="${esc(a.birth)}"><small class="muted" id="ed-age">${esc(App.ageText(a.birth))}</small></label>
-          <label>NIK (16 angka)<input id="ed-nik" inputmode="numeric" maxlength="16" value="${esc(a.nik)}" autocomplete="off"><small class="muted" id="ed-nik-info">${a.nik ? a.nik.length + '/16' : ''}</small></label>
-        </div>
-      </div>
-      <div class="field-t">Dokumen identitas <small class="muted">(foto/scan KTP, KK, atau akta kelahiran · gambar atau PDF)</small></div>
-      <div class="scans">${docThumbs(a.docs)}<label class="btn sm ghost upload">📎 Tambah dokumen<input type="file" accept="image/*,application/pdf" multiple id="ed-docs" hidden></label></div>
-      <div class="field-t">Nomor pertandingan yang diikuti <small class="muted">(daftar menyesuaikan jenis kelamin)</small></div>
+      <label>Nama atlet<input id="ed-name" value="${esc(a.name)}" autocomplete="off"></label>
+      <div class="field-t">Nomor tanding</div>
       <div class="evpick" id="ed-evs">${evChecks(a)}</div>
+      <div id="ed-mix">${mixChoice(a)}</div>
       <div id="ed-check">${statusHtml(R.check(C, a))}</div>
       <div class="row gap wrap ed-foot"><button type="button" class="btn" id="ed-save">Simpan atlet</button><button type="button" class="btn ghost" id="ed-cancel">Batal</button></div>
     </div>`;
@@ -199,11 +192,10 @@
 
   function athleteCard(a, i) {
     const evs = a.events.map(evById).filter(Boolean);
+    const k = kontingen();
     return `<div class="ath-card">
-      <div class="ath-photo">${a.photo ? `<img src="${a.photo.dataUrl}" alt="">` : '<span>Foto</span>'}</div>
       <div class="ath-info"><b>${i + 1}. ${esc(a.name || '(tanpa nama)')}</b>
-        <div class="small muted">${a.gender === 'L' ? 'Putra' : 'Putri'} · ${a.birth ? esc(App.fmtDate(a.birth)) + ' · ' + esc(App.ageText(a.birth)) : 'tanggal lahir belum diisi'}</div>
-        <div class="small muted">NIK ${esc(a.nik || '-')} · ${a.docs.length} dokumen</div>
+        <div class="small muted">${esc(k ? k.name : '-')}</div>
         <div>${evs.map((ev) => `<span class="code" title="${esc(ev.name)}">${esc(ev.code)}</span>`).join(' ')}</div>
         ${statusHtml(R.check(C, a))}</div>
       <div class="ath-act"><button class="btn sm ghost" data-ath-edit="${a.id}">Ubah</button><button class="btn sm danger" data-ath-del="${a.id}">Hapus</button></div>
@@ -221,9 +213,6 @@
 
   function problems() {
     const out = [];
-    if (!D.kontingenId) out.push('Kabupaten/Kota belum dipilih.');
-    if (sb && !(D.code || '').trim()) out.push('Kode akses belum diisi (dari panitia).');
-    if (!D.officials.some((o) => o.name.trim())) out.push('Belum ada official/penanggung jawab.');
     if (!D.athletes.length) out.push('Belum ada atlet.');
     const inc = D.athletes.filter((a) => R.check(C, a).missing.length).length;
     if (inc) out.push(`${inc} atlet datanya belum lengkap.`);
@@ -236,6 +225,22 @@
   let canShareFiles = false;
   try { canShareFiles = !!(navigator.canShare && navigator.canShare({ files: [new File(['{}'], 'cek.json', { type: 'application/json' })] })); } catch (e) { canShareFiles = false; }
 
+  // Langkah pertama: pilih kabupaten/kota lalu ketik ulang namanya dengan huruf kapital.
+  function gate() {
+    const k = kontingen();
+    return `<div class="reg-wrap">
+      ${header()}
+      <section class="card reg-gate"><h2>Verifikasi Kabupaten/Kota</h2>
+        <p class="muted">Pilih kabupaten/kota, lalu ketik ulang namanya dengan <b>HURUF KAPITAL</b> untuk membuka formulir.</p>
+        <form id="gate-form" autocomplete="off">
+          <label>Kabupaten / Kota<select id="d-k"><option value="">- pilih kabupaten/kota -</option>${options(C.kontingen.map((x) => [x.id, x.name]), D.kontingenId)}</select></label>
+          <label>Ketik ulang nama kabupaten/kota${k ? ` <small class="muted">(${esc(k.name)})</small>` : ''}<input id="d-confirm" class="reg-confirm" autocapitalize="characters" spellcheck="false" ${k ? '' : 'disabled'}></label>
+          <div class="reg-miss hidden" id="gate-err"></div>
+          <button class="btn" ${k ? '' : 'disabled'}>Lanjut ke formulir</button>
+        </form>
+      </section></div>`;
+  }
+
   function render() {
     const reg = C.registration;
     if (!reg.open) {
@@ -244,64 +249,49 @@
       return;
     }
     const k = kontingen();
-    const roles = R.roles(reg);
+    if (!k || D.verified !== k.id) { root.innerHTML = gate(); return; }
     const probs = problems();
     const wa = R.waNumber(reg.contactPhone);
     root.innerHTML = `<div class="reg-wrap">
       ${header()}
-      <section class="card"><h2><span class="step">1</span> Kontingen</h2>
-        <div class="grid3">
-          <label>Kabupaten / Kota<select id="d-k"><option value="">- pilih kabupaten/kota -</option>${options(C.kontingen.map((x) => [x.id, x.name]), D.kontingenId)}</select></label>
-          ${sb ? `<label>Kode akses <small class="muted">(dari panitia, 6 huruf/angka)</small><input id="d-code" class="reg-code" value="${esc(D.code || '')}" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="mis. K7QM2P"></label>` : ''}
-        </div>
-      </section>
+      <section class="card reg-kbar"><div><small>Asal Kota / Kabupaten</small><b>${esc(k.name)}</b></div>
+        <span class="pill ok">✓ Terverifikasi</span><button type="button" class="btn sm ghost" id="d-change">Ganti</button></section>
 
-      <section class="card"><h2><span class="step">2</span> Official &amp; Pelatih</h2>
-        <p class="muted small">Baris pertama adalah penanggung jawab kontingen (nama ini tercetak di kolom tanda tangan).</p>
-        <div class="off-list">${D.officials.map((o, i) => `<div class="off-row" data-i="${i}">
-          <select data-of="role">${options((roles.includes(o.role) ? roles : [o.role, ...roles]).map((r) => [r, r]), o.role)}</select>
-          <input data-of="name" placeholder="Nama lengkap" value="${esc(o.name)}" autocomplete="off">
-          <input data-of="phone" type="tel" inputmode="tel" placeholder="No. HP / WhatsApp" value="${esc(o.phone)}">
-          ${i ? `<button type="button" class="btn sm danger" data-off-del="${i}">Hapus</button>` : ''}</div>`).join('')}</div>
-        <button type="button" class="btn sm ghost" id="off-add">+ Tambah official</button>
-      </section>
-
-      <section class="card"><div class="row between wrap"><h2><span class="step">3</span> Atlet <small class="muted">(${D.athletes.length})</small></h2>
+      <section class="card"><div class="row between wrap"><h2><span class="step">1</span> Atlet <small class="muted">(${D.athletes.length})</small></h2>
         ${edit ? '' : '<button type="button" class="btn" id="ath-new">+ Tambah atlet</button>'}</div>
         ${edit ? editor() : ''}
         <div class="ath-cards">${D.athletes.map(athleteCard).join('') || (edit ? '' : empty('Belum ada atlet. Klik <b>+ Tambah atlet</b>.'))}</div>
       </section>
 
-      <section class="card"><h2><span class="step">4</span> Rekap per nomor</h2>${quotaTable()}</section>
+      <section class="card"><h2><span class="step">2</span> Rekap per nomor</h2>${quotaTable()}</section>
 
-      <section class="card"><h2><span class="step">5</span> Kirim ke panitia</h2>
+      <section class="card"><h2><span class="step">3</span> Kirim ke panitia</h2>
         ${probs.length ? `<div class="reg-probs"><b>Periksa dulu:</b><ul>${probs.map((p) => `<li>${esc(p)}</li>`).join('')}</ul></div>` : '<p class="pill ok">Data siap dikirim</p>'}
         ${D.sentAt ? `<div class="reg-sent">✅ Terkirim ke panitia ${esc(new Date(D.sentAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }))}${D.sentCount != null ? ` · ${D.sentCount} atlet` : ''}.
-          <span class="small">Kalau ada perubahan, perbaiki lalu kirim lagi. Kiriman terbaru yang dipakai panitia.</span></div>` : ''}
-        <ol class="small reg-steps">
-          ${sb ? `<li>Pastikan <b>kode akses</b> di langkah 1 sudah diisi, lalu klik <b>Kirim ke panitia</b>. Data dan foto langsung masuk ke panitia.</li>
-          <li>Kalau internet bermasalah, klik <b>Unduh berkas</b> lalu kirim file-nya lewat WhatsApp/email${contactLine() ? ': <b>' + contactLine() + '</b>' : ''}.</li>`
-            : `<li>Klik <b>Unduh berkas pendaftaran</b>. File <code>.json</code> tersimpan di folder Download.</li>
-          <li>Kirim file itu ke panitia lewat WhatsApp atau email${contactLine() ? ': <b>' + contactLine() + '</b>' : ''}.</li>`}
-          <li>Cetak rekap, tanda tangani oleh penanggung jawab, lalu serahkan sesuai arahan panitia.</li>
-        </ol>
+          <span class="small">Kalau ada perubahan, perbaiki lalu kirim lagi.</span></div>` : ''}
         <div class="row gap wrap">
           ${sb ? `<button type="button" class="btn" id="d-send">📨 ${D.sentAt ? 'Kirim ulang' : 'Kirim ke panitia'}</button>` : ''}
-          <button type="button" class="btn ${sb ? 'ghost' : ''}" id="d-download">💾 Unduh berkas${sb ? '' : ' pendaftaran'}</button>
+          <button type="button" class="btn ${sb ? 'ghost' : ''}" id="d-download">💾 Unduh berkas</button>
           ${canShareFiles ? '<button type="button" class="btn ghost" id="d-share">📤 Bagikan berkas</button>' : ''}
           <button type="button" class="btn ghost" id="d-print">🖨️ Cetak rekap</button>
-          ${wa ? `<a class="btn ghost" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(`Pendaftaran atlet woodball ${C.event.shortName} - kontingen ${k ? k.name : ''}`)}">💬 Chat panitia</a>` : ''}
+          ${wa ? `<a class="btn ghost" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(`Pendaftaran atlet woodball ${C.event.shortName} - kontingen ${k.name}`)}">💬 Chat panitia</a>` : ''}
         </div>
+        <p class="muted small">${sb ? 'Kalau internet bermasalah, klik <b>Unduh berkas</b> lalu kirim file-nya ke panitia lewat WhatsApp/email' : 'Klik <b>Unduh berkas</b> lalu kirim file-nya ke panitia lewat WhatsApp/email'}${contactLine() ? ': <b>' + contactLine() + '</b>' : ''}.</p>
         <details class="reg-more"><summary class="small muted">Buka berkas lama / mulai baru</summary>
           <p class="muted small">Berkas yang sudah diunduh bisa dibuka lagi untuk diperbaiki, misalnya di perangkat lain. Isian di halaman ini tersimpan otomatis di browser ini.</p>
           <div class="row gap wrap"><label class="btn sm ghost upload">📂 Buka berkas pendaftaran<input type="file" accept=".json,application/json" id="d-open" hidden></label>
           <button type="button" class="btn sm danger" id="d-reset">Hapus semua isian</button></div>
         </details>
       </section>
-      <p class="muted small c reg-src">${src === 'default' ? 'Pengaturan formulir: bawaan aplikasi' : src === 'lokal' ? 'Pengaturan formulir: data admin di perangkat ini' : src === 'server' ? 'Pengaturan formulir dari server panitia' : 'Pengaturan formulir diperbarui ' + esc(App.fmtDate((C.exported || '').slice(0, 10)))}</p>
     </div>`;
   }
 
+  function refreshEditor() {
+    if (!edit) return;
+    document.getElementById('ed-evs').innerHTML = evChecks(edit);
+    document.getElementById('ed-mix').innerHTML = mixChoice(edit);
+    refreshCheck();
+  }
   function refreshCheck() {
     const box = document.getElementById('ed-check');
     if (box && edit) box.innerHTML = statusHtml(R.check(C, edit));
@@ -313,11 +303,9 @@
     return {
       app: R.FILE_APP, version: 1, created: new Date().toISOString(), event: C.event.shortName,
       kontingen: k ? { id: k.id, name: k.name, short: k.short } : null,
-      officials: D.officials.filter((o) => o.name.trim()).map((o) => ({ role: o.role, name: o.name.trim(), phone: o.phone.trim() })),
       athletes: D.athletes.map((a) => ({
-        ref: a.id, name: a.name.trim(), gender: a.gender, birth: a.birth, nik: a.nik,
+        ref: a.id, name: a.name.trim(), gender: a.gender,
         events: a.events.map((id) => ({ id, code: (evById(id) || {}).code || id })),
-        photo: a.photo, docs: a.docs,
       })),
     };
   }
@@ -329,7 +317,7 @@
   }
   async function readyToSend() {
     if (edit) { App.toast('Simpan atau batalkan isian atlet dulu', 'err'); return false; }
-    if (!D.kontingenId || !D.athletes.length) { App.toast('Pilih kabupaten/kota dan isi minimal 1 atlet', 'err'); return false; }
+    if (!D.athletes.length) { App.toast('Isi minimal 1 atlet', 'err'); return false; }
     const probs = problems();
     return !probs.length || (await App.ask('Masih ada catatan:\n- ' + probs.join('\n- ') + '\n\nTetap lanjut?'));
   }
@@ -339,14 +327,12 @@
     const k = obj.kontingen && (C.kontingen.find((x) => x.id === obj.kontingen.id) || C.kontingen.find((x) => x.name === obj.kontingen.name));
     const evId = (e) => (C.events.find((x) => x.id === e.id) || C.events.find((x) => x.code === e.code) || {}).id;
     D = {
-      kontingenId: k ? k.id : '',
-      officials: (obj.officials || []).map((o) => ({ id: App.uid('o_'), role: o.role || '', name: o.name || '', phone: o.phone || '' })),
+      kontingenId: k ? k.id : '', verified: k && k.id === D.verified ? k.id : '',
       athletes: (obj.athletes || []).map((a) => ({
-        id: a.ref || App.uid('a_'), name: a.name || '', gender: a.gender === 'P' ? 'P' : 'L', birth: a.birth || '', nik: a.nik || '',
-        events: (a.events || []).map(evId).filter(Boolean), photo: a.photo || null, docs: a.docs || [],
+        id: a.ref || App.uid('a_'), name: a.name || '', gender: a.gender === 'P' || a.gender === 'L' ? a.gender : null,
+        events: (a.events || []).map(evId).filter(Boolean),
       })),
     };
-    if (!D.officials.length) D.officials = newDraft().officials;
   }
 
   // ---------- cetak rekap ----------
@@ -362,158 +348,77 @@
   }
   function printHtml() {
     const k = kontingen();
-    const offs = D.officials.filter((o) => o.name.trim());
-    const lead = offs[0];
-    const list = D.athletes.slice().sort((a, b) => a.gender.localeCompare(b.gender) || a.name.localeCompare(b.name));
+    const list = D.athletes.slice().sort((a, b) => a.name.localeCompare(b.name));
     return `<section class="page flow">${kop('DAFTAR PENDAFTARAN ATLET', 'Kontingen ' + (k ? k.name : '-'))}
-      <h4>Official</h4>
-      <table class="pt"><thead><tr><th>No</th><th>Jabatan</th><th>Nama</th><th>No. HP</th></tr></thead><tbody>
-      ${offs.map((o, i) => `<tr><td class="c">${i + 1}</td><td>${esc(o.role)}</td><td>${esc(o.name)}</td><td>${esc(o.phone)}</td></tr>`).join('') || '<tr><td colspan="4" class="c">-</td></tr>'}
-      </tbody></table>
-      <h4>Atlet</h4>
-      <table class="pt reg-pt"><thead><tr><th>No</th><th>Foto</th><th>Nama</th><th>L/P</th><th>Tanggal Lahir</th><th>Umur per ${esc(App.fmtDate(C.event.dateStart))}</th><th>NIK</th><th>Nomor</th></tr></thead><tbody>
-      ${list.map((a, i) => `<tr><td class="c">${i + 1}</td><td class="ph">${a.photo ? `<img src="${a.photo.dataUrl}" alt="">` : ''}</td><td>${esc(a.name)}</td><td class="c">${a.gender}</td>
-        <td>${esc(a.birth ? App.fmtDate(a.birth) : '-')}</td><td>${esc(App.ageText(a.birth) || '-')}</td><td>${esc(a.nik || '-')}</td>
+      <table class="pt"><thead><tr><th>No</th><th>Nama</th><th>Asal Kota/Kabupaten</th><th>Nomor Tanding</th></tr></thead><tbody>
+      ${list.map((a, i) => `<tr><td class="c">${i + 1}</td><td>${esc(a.name)}</td><td>${esc(k ? k.name : '-')}</td>
         <td>${esc(a.events.map(evById).filter(Boolean).map((ev) => ev.code).join(', '))}</td></tr>`).join('')}
       </tbody></table>
-      <h4>Rekap per nomor</h4>
-      <table class="pt"><thead><tr><th>Nomor</th><th>Atlet</th><th>Jumlah</th></tr></thead><tbody>
-      ${R.quota(C, D.athletes).filter((q) => q.list.length).map((q) => `<tr><td>${esc(q.ev.code)} · ${esc(q.ev.name)}</td><td>${q.list.map((a) => esc(a.name)).join(', ')}</td><td class="c">${q.list.length}</td></tr>`).join('')}
-      </tbody></table>
-      <div class="signs end"><div class="sign"><div>................................, ${esc(App.fmtDate(App.today()))}</div><div>${esc(lead ? lead.role : 'Penanggung jawab')}</div>
-        <div class="sign-space"></div><div class="sign-name">${esc(lead ? lead.name : '(....................................)')}</div></div></div>
+      <div class="signs end"><div class="sign"><div>................................, ${esc(App.fmtDate(App.today()))}</div><div>Penanggung jawab</div>
+        <div class="sign-space"></div><div class="sign-name">(....................................)</div></div></div>
     </section>`;
   }
 
   // ---------- kirim online ----------
-  // Layar proses sederhana selama mengunggah (tidak bisa ditutup sampai selesai).
-  function busy(text) {
-    const el = document.createElement('div');
-    el.className = 'dlg-overlay';
-    el.innerHTML = `<div class="dlg glass"><h3>Mengirim pendaftaran…</h3><p class="dlg-text" id="busy-t">${esc(text)}</p><div class="busy-bar"><i id="busy-b"></i></div></div>`;
-    document.body.appendChild(el);
-    return {
-      set(t, frac) { el.querySelector('#busy-t').textContent = t; if (frac != null) el.querySelector('#busy-b').style.width = Math.round(frac * 100) + '%'; },
-      close() { el.remove(); },
-    };
-  }
-  const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
-  // Gambar selain JPG/PNG/WebP (mis. GIF/HEIC) diubah ke JPG supaya diterima server.
-  async function uploadable(f) {
-    if (EXT[f.type]) return f;
-    const url = await App.compressImage(f.dataUrl, 1600, 0.8);
-    if (!url.startsWith('data:image/jpeg')) {
-      const img = new Image();
-      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = f.dataUrl; });
-      const c = document.createElement('canvas');
-      c.width = img.width; c.height = img.height;
-      c.getContext('2d').drawImage(img, 0, 0);
-      return { name: f.name, type: 'image/jpeg', dataUrl: c.toDataURL('image/jpeg', 0.8) };
-    }
-    return { name: f.name, type: 'image/jpeg', dataUrl: url };
-  }
   const errText = (e) => {
     const m = (e && e.message) || String(e);
     if (!navigator.onLine || /fetch|network|koneksi|timeout/i.test(m)) return 'Tidak bisa terhubung ke server. Periksa internet lalu coba lagi, atau pakai tombol Unduh berkas.';
     return m;
   };
-
   async function sendOnline() {
-    if (!(await readyToSend())) return;
-    if (!(D.code || '').trim()) {
-      App.notice('Isi kode akses dari panitia di langkah 1 (Kontingen), lalu klik Kirim lagi.', 'Kode akses belum diisi');
-      document.getElementById('d-code').focus();
-      return;
-    }
+    if (sending || !(await readyToSend())) return;
+    const k = kontingen();
     const file = buildFile();
-    const total = file.athletes.reduce((n, a) => n + (a.photo ? 1 : 0) + a.docs.length, 0);
-    const ui = busy('Memeriksa kode akses…');
+    sending = true;
+    App.toast('Mengirim pendaftaran…');
     try {
-      const { data: token, error } = await withTimeout(sb.rpc('reg_start', { p_kontingen: D.kontingenId, p_code: D.code.trim() }), 15000);
-      if (error) throw new Error(/kode akses/i.test(error.message) ? 'Kode akses salah untuk kontingen ini. Periksa lagi kode dari panitia.' : error.message);
-      let done = 0;
-      const up = async (f, path) => {
-        f = await uploadable(f);
-        const blob = await (await fetch(f.dataUrl)).blob();
-        const { error: ue } = await withTimeout(sb.storage.from('registrations').upload(`${path}.${EXT[f.type]}`, blob, { contentType: f.type }), 90000);
-        if (ue) throw ue;
-        done++;
-        ui.set(`Mengunggah foto & dokumen ${done} dari ${total}…`, total ? done / total : 1);
-        return { name: f.name, type: f.type, path: `${path}.${EXT[f.type]}` };
-      };
-      ui.set(total ? `Mengunggah foto & dokumen 0 dari ${total}…` : 'Mengirim data…', 0);
-      for (const a of file.athletes) {
-        const base = `${token}/${a.ref.replace(/[^\w-]/g, '')}`;
-        if (a.photo) a.photo = await up(a.photo, `${base}/foto`);
-        const docs = [];
-        for (const [i, d] of a.docs.entries()) docs.push(await up(d, `${base}/dok-${i + 1}`));
-        a.docs = docs;
-      }
-      ui.set('Mengirim data pendaftaran…', 1);
-      const { error: se } = await withTimeout(sb.rpc('reg_submit', { p_token: token, p_payload: file }), 30000);
+      const { data: token, error } = await withTimeout(sb.rpc('reg_start', { p_kontingen: k.id, p_nama: k.name }), 15000);
+      if (error) throw error;
+      const { error: se } = await withTimeout(sb.rpc('reg_submit', { p_token: token, p_payload: file }), 20000);
       if (se) throw se;
-      ui.close();
       D.sentAt = new Date().toISOString();
       D.sentCount = file.athletes.length;
       saveDraft();
       render();
-      App.notice(`Pendaftaran kontingen ${(kontingen() || {}).name || ''} (${file.athletes.length} atlet, ${file.officials.length} official) sudah diterima server panitia.\n\n`
-        + 'Kalau ada perubahan, perbaiki di formulir ini lalu klik Kirim ulang. Jangan lupa cetak rekap dan tanda tangani.', 'Terkirim ✓');
+      App.notice(`Pendaftaran kontingen ${k.name} (${file.athletes.length} atlet) sudah diterima server panitia.\n\nKalau ada perubahan, perbaiki di formulir ini lalu klik Kirim ulang.`, 'Terkirim ✓');
     } catch (e) {
-      ui.close();
       App.notice(errText(e), 'Gagal mengirim');
-    }
-  }
-
-  // ---------- unggah gambar/dokumen ----------
-  async function readImage(file, maxSide, quality) {
-    const url = await App.compressImage(await App.readFile(file), maxSide, quality);
-    return { name: file.name, type: url.slice(5, url.indexOf(';')), dataUrl: url };
-  }
-  async function addDocs(files) {
-    for (const file of files) {
-      if (file.type === 'application/pdf') {
-        if (file.size > 3 * 1024 * 1024) { App.toast(`${file.name} lebih dari 3 MB, kirim versi lebih kecil atau foto`, 'err'); continue; }
-        edit.docs.push({ name: file.name, type: file.type, dataUrl: await App.readFile(file) });
-      } else if (file.type.startsWith('image/')) edit.docs.push(await readImage(file, 1600, 0.75));
-      else App.toast(`${file.name}: hanya gambar atau PDF`, 'err');
+    } finally {
+      sending = false;
     }
   }
 
   // ---------- event ----------
   root.addEventListener('input', (e) => {
     const t = e.target;
-    if (t.id === 'd-code') {
-      t.value = t.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-      D.code = t.value;
-      saveDraft();
+    if (edit && t.id === 'ed-name') { edit.name = t.value; refreshCheck(); }
+  });
+
+  root.addEventListener('submit', (e) => {
+    if (e.target.id !== 'gate-form') return;
+    e.preventDefault();
+    const k = kontingen();
+    const typed = document.getElementById('d-confirm').value.trim();
+    if (!k || typed !== k.name) {
+      const err = document.getElementById('gate-err');
+      err.textContent = typed.toUpperCase() === (k && k.name) ? 'Gunakan huruf kapital semua.' : 'Nama tidak sama. Ketik ulang persis seperti nama kabupaten/kota yang dipilih.';
+      err.classList.remove('hidden');
       return;
     }
-    if (t.dataset.of) {
-      D.officials[+t.closest('.off-row').dataset.i][t.dataset.of] = t.value;
-      saveDraft();
-      return;
-    }
-    if (!edit) return;
-    if (t.id === 'ed-name') edit.name = t.value;
-    else if (t.id === 'ed-birth') { edit.birth = t.value; document.getElementById('ed-age').textContent = App.ageText(t.value); }
-    else if (t.id === 'ed-nik') {
-      t.value = t.value.replace(/\D/g, '').slice(0, 16);
-      edit.nik = t.value;
-      document.getElementById('ed-nik-info').textContent = t.value ? t.value.length + '/16' : '';
-    } else return;
-    refreshCheck();
+    D.verified = k.id;
+    saveDraft();
+    render();
   });
 
   root.addEventListener('change', async (e) => {
     const t = e.target;
-    if (t.id === 'd-k') { D.kontingenId = t.value; saveDraft(); render(); return; }
+    if (t.id === 'd-k') { D.kontingenId = t.value; saveDraft(); render(); document.getElementById('d-confirm').focus(); return; }
     if (t.id === 'd-open') {
       const file = t.files[0];
       if (!file) return;
       try {
         const obj = JSON.parse(await App.readFile(file, 'text'));
-        if ((D.athletes.length || D.kontingenId) && !(await App.ask('Ganti isian sekarang dengan isi berkas ini?'))) return;
+        if (D.athletes.length && !(await App.ask('Ganti isian sekarang dengan isi berkas ini?'))) return;
         loadFile(obj);
         edit = null;
         saveDraft();
@@ -524,34 +429,30 @@
     }
     if (!edit) return;
     if (t.id === 'ed-gender') {
-      edit.gender = t.value;
-      edit.events = edit.events.filter((id) => { const ev = evById(id); return ev && (ev.gender === 'X' || ev.gender === edit.gender); });
-      document.getElementById('ed-evs').innerHTML = evChecks(edit);
+      edit.gender = t.value || null;
       refreshCheck();
     } else if (t.name === 'ev') {
       edit.events = Array.from(root.querySelectorAll('#ed-evs input[name=ev]:checked')).map((x) => x.value);
-      refreshCheck();
-    } else if (t.id === 'ed-photo' && t.files[0]) {
-      edit.photo = await readImage(t.files[0], 600, 0.82);
-      render();
-    } else if (t.id === 'ed-docs' && t.files.length) {
-      await addDocs(t.files);
-      render();
+      edit.gender = R.genderOf(C, edit.events) || (edit.events.length ? edit.gender : null);
+      refreshEditor();
     }
   });
 
   root.addEventListener('click', async (e) => {
-    const b = e.target.closest('button, [data-ath-edit], [data-ath-del]');
+    const b = e.target.closest('button');
     if (!b) return;
-    if (b.id === 'off-add') {
-      const roles = R.roles(C.registration);
-      D.officials.push({ id: App.uid('o_'), role: roles[1] || roles[0] || 'Official', name: '', phone: '' });
-      saveDraft(); render();
-    } else if (b.dataset.offDel) {
-      D.officials.splice(+b.dataset.offDel, 1);
+    if (b.id === 'd-theme') {
+      const next = THEMES[(THEMES.indexOf(theme()) + 1) % THEMES.length];
+      setTheme(next);
+      b.outerHTML = themeBtn();
+      App.toast(THEME_LABEL[next]);
+    } else if (b.id === 'd-change') {
+      if (D.athletes.length && !(await App.ask('Ganti kabupaten/kota? Daftar atlet di formulir ini akan dikosongkan.', 'Ya, ganti'))) return;
+      D = newDraft();
+      edit = null;
       saveDraft(); render();
     } else if (b.id === 'ath-new') {
-      edit = { id: App.uid('a_'), name: '', gender: 'L', birth: '', nik: '', events: [], photo: null, docs: [] };
+      edit = { id: App.uid('a_'), name: '', gender: null, events: [] };
       render();
       document.getElementById('editor').scrollIntoView({ behavior: 'smooth', block: 'start' });
       document.getElementById('ed-name').focus({ preventScroll: true });
@@ -574,10 +475,6 @@
       App.toast('Atlet tersimpan');
     } else if (b.id === 'ed-cancel') {
       edit = null; render();
-    } else if (b.id === 'ed-photo-del') {
-      edit.photo = null; render();
-    } else if (b.dataset.docDel) {
-      edit.docs.splice(+b.dataset.docDel, 1); render();
     } else if (b.id === 'd-send') {
       await sendOnline();
     } else if (b.id === 'd-download') {
@@ -593,11 +490,6 @@
       if (edit) { App.toast('Simpan atau batalkan isian atlet dulu', 'err'); return; }
       document.getElementById('reg-print').innerHTML = printHtml();
       setTimeout(() => window.print(), 300); // beri waktu gambar dimuat
-    } else if (b.id === 'd-theme') {
-      const next = THEMES[(THEMES.indexOf(theme()) + 1) % THEMES.length];
-      setTheme(next);
-      b.outerHTML = themeBtn();
-      App.toast(THEME_LABEL[next]);
     } else if (b.id === 'd-reset') {
       if (!(await App.ask('Hapus semua isian di formulir ini? Berkas yang sudah diunduh tidak terpengaruh.'))) return;
       D = newDraft(); edit = null;
@@ -616,14 +508,14 @@
     C.registration = { ...R.defaults(), ...(C.registration || {}) };
     C.validation = { ...d.validation, ...(C.validation || {}) };
     C.logos = C.logos || [];
-    App.S = C; // App.ageText memakai tanggal mulai event
+    App.S = C;
     document.documentElement.style.setProperty('--brand', C.event.themeColor || '#16a34a');
     document.documentElement.style.setProperty('--accent', C.event.accentColor || '#dc2626');
     document.title = `Pendaftaran Atlet · ${C.event.sport} ${C.event.shortName}`;
     const saved = await draftGet();
-    D = saved && saved.officials ? saved : newDraft();
+    D = saved && Array.isArray(saved.athletes) ? saved : newDraft();
     render();
-    if (saved && (saved.athletes || []).length) App.toast(`Isian sebelumnya dipulihkan (${saved.athletes.length} atlet)`);
+    if (saved && saved.athletes && saved.athletes.length) App.toast(`Isian sebelumnya dipulihkan (${saved.athletes.length} atlet)`);
   }
   start();
 })(window.App);

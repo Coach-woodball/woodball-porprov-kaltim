@@ -3,9 +3,78 @@
   const esc = App.esc;
 
   // ---------- Beranda ----------
+  let cdTimer = null;
+
+  const annItems = () => {
+    const reg = App.S.registration || {};
+    const items = App.sortedAnnouncements();
+    if (reg.deadline) {
+      items.unshift({ pinned: true, title: 'Batas pendaftaran atlet', date: reg.deadline, body: `Pendaftaran atlet ditutup pada ${App.fmtDate(reg.deadline)}. Official kontingen mendaftar lewat menu ${App.S.menu.daftar || 'Pendaftaran'}.` });
+    }
+    return items;
+  };
+  const annBoard = () => `<div class="card an-board"><h2>Papan Pengumuman</h2>
+    ${annItems().map((x) => `<article class="an-post ${x.pinned ? 'pinned' : ''}"><time>${esc(App.fmtDate(x.date))}</time><h3>${esc(x.title)}</h3><p>${esc(x.body).replace(/\n/g, '<br>')}</p></article>`).join('') || App.ui.empty('Belum ada pengumuman.')}
+  </div>`;
+
+  const daysTo = (iso) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    const [y2, m2, d2] = App.today().split('-').map(Number);
+    return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y2, m2 - 1, d2)) / 86400000);
+  };
+
+  // Beranda umum sebelum pertandingan: hitung mundur, pengumuman, dan info persiapan.
+  function preEvent() {
+    const S = App.S, E = S.event, reg = S.registration || {};
+    const left = reg.deadline ? daysTo(reg.deadline) : null;
+    const open = reg.open !== false && !(left !== null && left < 0);
+    const wa = App.reg.waNumber(reg.contactPhone);
+    const unit = (id, label) => `<div class="cd-unit"><b id="cd-${id}">00</b><span>${label}</span></div>`;
+    return `<section class="pre-hero">
+        <div class="hero-logos">${App.logoImgs('logo')}</div>
+        <p class="pre-kicker">Cabang Olahraga ${esc(E.sport)} · ${esc(E.region)}</p>
+        <h1>${esc(E.title)}</h1>
+        <p class="pre-meta">${esc(App.fmtDateRange(E.dateStart, E.dateEnd))} · ${esc(E.venue)}, ${esc(E.city)}</p>
+        <p class="cd-title">Menuju pertandingan</p>
+        <div class="cd-grid" id="countdown">${unit('d', 'Hari')}${unit('h', 'Jam')}${unit('m', 'Menit')}${unit('s', 'Detik')}</div>
+        ${reg.open !== false ? `<a class="btn pre-cta" href="daftar.html">Daftarkan Atlet</a>` : ''}
+      </section>
+      <div class="pre-grid">
+        ${annBoard()}
+        <aside class="pre-side">
+          <div class="card"><h3>Pendaftaran</h3>
+            <p><span class="pill ${open ? 'ok' : 'live'}">${open ? 'Dibuka' : 'Ditutup'}</span></p>
+            ${reg.deadline ? `<p class="info-big">${esc(App.fmtDate(reg.deadline))}</p><p class="muted small">${left > 0 ? `${left} hari lagi` : left === 0 ? 'Hari terakhir' : 'Batas pendaftaran sudah lewat'}</p>` : '<p class="muted small">Batas pendaftaran belum diumumkan.</p>'}
+          </div>
+          <div class="card"><h3>Persiapan</h3>
+            <div class="pre-stats"><div><b>${S.kontingen.length}</b><span>Kontingen</span></div><div><b>${S.events.length}</b><span>Nomor</span></div><div><b>${S.athletes.length}</b><span>Atlet</span></div></div>
+          </div>
+          ${reg.contactName || reg.contactPhone ? `<div class="card"><h3>Kontak Panitia</h3><p>${esc(reg.contactName || 'Panitia')}</p>
+            ${wa ? `<a class="btn sm ghost" target="_blank" rel="noopener" href="https://wa.me/${wa}">WhatsApp ${esc(reg.contactPhone)}</a>` : ''}</div>` : ''}
+        </aside>
+      </div>`;
+  }
+
+  function startCountdown(root) {
+    clearInterval(cdTimer);
+    const [y, m, d] = App.S.event.dateStart.split('-').map(Number);
+    const target = new Date(y, m - 1, d).getTime();
+    const put = (id, v) => { const el = root.querySelector('#cd-' + id); if (el) el.textContent = String(v).padStart(2, '0'); };
+    const tick = () => {
+      if (!root.querySelector('#countdown')) return clearInterval(cdTimer);
+      const left = Math.floor((target - Date.now()) / 1000);
+      if (left <= 0) { clearInterval(cdTimer); return App.rerender(); } // pertandingan dimulai: ganti ke tampilan progres
+      put('d', Math.floor(left / 86400)); put('h', Math.floor(left / 3600) % 24); put('m', Math.floor(left / 60) % 60); put('s', left % 60);
+    };
+    tick();
+    cdTimer = setInterval(tick, 1000);
+  }
+
   App.views.dashboard = {
+    mount(root) { if (root.querySelector('#countdown')) startCountdown(root); },
     render() {
       const S = App.S, E = S.event;
+      if (!App.isAdmin() && E.dateStart && App.today() < E.dateStart) return preEvent();
       const warns = App.isAdmin() ? App.validate() : [];
       const { rows } = App.medalTally();
       const evRows = S.events.map((ev) => {
@@ -40,6 +109,7 @@
         </div>
         ${warns.length ? `<div class="card warn"><b>⚠️ ${warns.length} peringatan validasi</b> - lihat di <a href="#/athletes">${esc(S.menu.athletes)}</a>.</div>` : ''}
         ${App.db.isFallback ? '<div class="card warn">Browser ini tidak mendukung IndexedDB; scan & logo tidak tersimpan permanen. Gunakan Chrome/Edge.</div>' : ''}
+        ${App.isAdmin() || !annItems().length ? '' : annBoard()}
         <div class="card"><h2>Progres Pertandingan</h2>
           <div class="table-wrap"><table><thead><tr><th>Nomor</th><th>Entri</th><th>Progres</th><th>Juara 1</th></tr></thead><tbody>${evRows}</tbody></table></div>
         </div>
@@ -63,11 +133,11 @@
       const rows = App.S.kontingen.map((k) => {
         const nA = App.S.athletes.filter((a) => a.kontingenId === k.id).length;
         return `<tr data-id="${k.id}"><td><input class="k-name" value="${esc(k.name)}"></td><td><input class="k-short" value="${esc(k.short)}" style="max-width:120px"></td>
-          <td class="c">${nA}</td><td class="k-offs">${(k.officials || []).map((o) => `${esc(o.role)}: <b>${esc(o.name)}</b>${o.phone ? ' (' + esc(o.phone) + ')' : ''}`).join('<br>') || '-'}</td><td><button class="btn sm danger k-del" ${nA ? 'disabled title="Masih ada atlet"' : ''}>Hapus</button></td></tr>`;
+          <td class="c">${nA}</td><td><button class="btn sm danger k-del" ${nA ? 'disabled title="Masih ada atlet"' : ''}>Hapus</button></td></tr>`;
       }).join('');
       return `<div class="card"><h2>${esc(App.S.menu.kontingen)} (Kab/Kota)</h2>
         <p class="muted">Nama lengkap dipakai di dokumen; singkatan dipakai di tabel & bagan.</p>
-        <div class="table-wrap"><table><thead><tr><th>Nama</th><th>Singkatan</th><th>Atlet</th><th>Official</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Nama</th><th>Singkatan</th><th>Atlet</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
         <form class="row gap" id="k-add"><input name="name" placeholder="Nama kontingen baru" required><input name="short" placeholder="Singkatan" style="max-width:140px"><button class="btn">+ Tambah</button></form>
       </div>`;
     },
@@ -111,22 +181,14 @@
   App.eventLegend = () => `<div class="legend">${App.S.events.map((ev) => `<span><b>${esc(ev.code)}</b> ${esc(ev.name)}</span>`).join('')}</div>`;
 
   function athleteForm(a) {
-    a = a || { name: '', gender: 'L', kontingenId: athFilter.k, birth: '', nik: '', events: [] };
-    const photo = App.files.url(a.photo);
+    a = a || { name: '', gender: 'L', kontingenId: athFilter.k, events: [] };
     return `<form id="ath-form" class="card form">
       <h3>${a.id ? 'Ubah atlet' : 'Tambah atlet'}</h3>
       <div class="grid4">
         <label>Nama<input name="name" value="${esc(a.name)}" required></label>
         <label>Jenis kelamin<select name="gender">${App.ui.options([['L', 'Putra'], ['P', 'Putri']], a.gender)}</select></label>
         <label>Kontingen<select name="kontingenId" required>${App.ui.kontingenOptions(a.kontingenId)}</select></label>
-        <label>Tanggal lahir<input type="date" name="birth" value="${esc(a.birth || '')}"><small class="muted" id="ath-age">${esc(App.ageText(a.birth))}</small></label>
-        <label>NIK<input name="nik" inputmode="numeric" maxlength="16" value="${esc(a.nik || '')}"></label>
       </div>
-      ${a.id ? `<div class="ath-media">
-        <div><div class="field-t">Pas foto</div><div class="photo-box">${photo ? `<img src="${photo}" alt="">` : 'Belum ada'}</div>
-          <div class="row gap"><label class="btn xs ghost upload">📷 Upload<input type="file" accept="image/*" id="ath-photo" hidden></label>${a.photo ? '<button type="button" class="btn xs danger" id="ath-photo-del">Hapus</button>' : ''}</div></div>
-        <div><div class="field-t">Dokumen identitas (KTP / KK / akta)</div>${App.ui.scanBlock(a.docs, 'docs', '📎 Upload dokumen')}</div>
-      </div>` : '<p class="muted small">Pas foto dan dokumen identitas bisa ditambahkan setelah atlet disimpan (klik <b>Ubah</b>).</p>'}
       <div class="field-t">Nomor yang diikuti <small class="muted">(daftar menyesuaikan jenis kelamin)</small></div>
       <div id="ath-evs" class="evpick">${evChecks(a.gender, a.events)}</div>
       <div class="row gap"><button class="btn">${a.id ? 'Simpan' : '+ Tambah'}</button>${a.id ? '<button type="button" class="btn ghost" id="ath-cancel">Batal</button>' : ''}</div>
@@ -149,9 +211,9 @@
           <div class="row gap"><button class="btn ghost" id="ath-auto">⚡ Buat entri otomatis</button><button class="btn ghost" id="ath-import-toggle">📥 Tempel dari Excel</button></div></div>
         <div class="card hidden" id="ath-import">
           <h3>Tempel data dari Excel</h3>
-          <p class="muted">Salin kolom dari Excel lalu tempel. Urutan kolom: <b>Nama</b> | <b>L/P</b> | <b>Kontingen</b> (nama/singkatan) | <b>Tgl lahir</b> (opsional, YYYY-MM-DD atau DD/MM/YYYY) | <b>Nomor</b> (kode, pisahkan koma, mis. <code>SS-PA, TS-PA</code>).</p>
+          <p class="muted">Salin kolom dari Excel lalu tempel. Urutan kolom: <b>Nama</b> | <b>L/P</b> | <b>Kontingen</b> (nama/singkatan) | <b>Nomor</b> (kode, pisahkan koma, mis. <code>SS-PA, TS-PA</code>).</p>
           <details><summary class="muted small">Lihat arti kode nomor</summary>${App.eventLegend()}</details>
-          <textarea id="ath-paste" rows="8" placeholder="Rahmat Anan Muhaimin	L	KUKAR		SS-PA, DS-PA, TS-PA"></textarea>
+          <textarea id="ath-paste" rows="8" placeholder="Rahmat Anan Muhaimin	L	KUKAR	SS-PA, DS-PA, TS-PA"></textarea>
           <button class="btn" id="ath-import-go">Impor</button>
         </div>
         ${athleteForm(editing)}
@@ -163,11 +225,11 @@
             <input id="f-q" placeholder="Cari nama…" value="${esc(athFilter.q)}">
           </div>
           <details class="legend-wrap"><summary class="muted small">Arti kode nomor</summary>${App.eventLegend()}</details>
-          <div class="table-wrap"><table><thead><tr><th>#</th><th>Nama</th><th>L/P</th><th>Kontingen</th><th>Tgl lahir</th><th title="Dihitung per ${esc(App.fmtDate(S.event.dateStart))} (hari pertama pertandingan)">Umur <small>per ${esc(App.fmtDate(S.event.dateStart))}</small></th><th>Daftar nomor</th><th>Masuk entri</th><th></th></tr></thead><tbody>
-          ${list.map((a, i) => `<tr><td class="c">${i + 1}</td><td class="nowrap">${App.files.url(a.photo) ? `<img class="ath-thumb" src="${App.files.url(a.photo)}" alt="">` : ''}<span class="ath-nm">${esc(a.name)}${a.nik || (a.docs || []).length ? `<small class="muted">${a.nik ? 'NIK ' + esc(a.nik) : ''}${(a.docs || []).length ? ' · 📄 ' + a.docs.length : ''}</small>` : ''}</span></td><td class="c">${a.gender}</td><td>${esc(App.kShort(a.kontingenId))}</td>
-            <td class="nowrap">${esc(a.birth ? App.fmtDate(a.birth) : '-')}</td><td class="nowrap small">${esc(App.ageText(a.birth) || '-')}</td><td>${(a.events || []).map(App.event).filter(Boolean).map((ev) => `<span class="code" title="${esc(ev.name)}">${esc(ev.code)}</span>`).join(' ')}</td>
+          <div class="table-wrap"><table><thead><tr><th>#</th><th>Nama</th><th>L/P</th><th>Kontingen</th><th>Daftar nomor</th><th>Masuk entri</th><th></th></tr></thead><tbody>
+          ${list.map((a, i) => `<tr><td class="c">${i + 1}</td><td class="nowrap">${esc(a.name)}</td><td class="c">${a.gender}</td><td>${esc(App.kShort(a.kontingenId))}</td>
+            <td>${(a.events || []).map(App.event).filter(Boolean).map((ev) => `<span class="code" title="${esc(ev.name)}">${esc(ev.code)}</span>`).join(' ')}</td>
             <td>${(inEntries[a.id] || []).map((c) => `<span class="code" title="${esc((App.S.events.find((ev) => ev.code === c) || {}).name || '')}">${esc(c)}</span>`).join(' ')}</td>
-            <td class="nowrap"><button class="btn sm ghost" data-edit="${a.id}">Ubah</button> <button class="btn sm danger" data-del="${a.id}">Hapus</button></td></tr>`).join('') || `<tr><td colspan="9">${App.ui.empty('Belum ada atlet.')}</td></tr>`}
+            <td class="nowrap"><button class="btn sm ghost" data-edit="${a.id}">Ubah</button> <button class="btn sm danger" data-del="${a.id}">Hapus</button></td></tr>`).join('') || `<tr><td colspan="7">${App.ui.empty('Belum ada atlet.')}</td></tr>`}
           </tbody></table></div>
         </div>`;
     },
@@ -177,29 +239,16 @@
         const sel = Array.from(form.querySelectorAll('input[name=ev]:checked')).map((x) => x.value);
         root.querySelector('#ath-evs').innerHTML = evChecks(form.gender.value, sel);
       });
-      form.birth.addEventListener('input', () => { root.querySelector('#ath-age').textContent = App.ageText(form.birth.value); });
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         const f = new FormData(form);
-        const data = { name: f.get('name').trim(), gender: f.get('gender'), kontingenId: f.get('kontingenId'), birth: f.get('birth'), nik: (f.get('nik') || '').replace(/\D/g, ''), events: f.getAll('ev') };
+        const data = { name: f.get('name').trim(), gender: f.get('gender'), kontingenId: f.get('kontingenId'), events: f.getAll('ev') };
         if (editId) Object.assign(App.athlete(editId), data);
         else App.S.athletes.push({ id: App.uid('a_'), ...data });
         athFilter.k = data.kontingenId;
         editId = null;
         App.commit('Atlet tersimpan');
       });
-      const cur = editId && App.athlete(editId);
-      if (cur) {
-        App.bindScans(root, () => (cur.docs = cur.docs || []));
-        root.querySelector('#ath-photo').addEventListener('change', async (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          const url = await App.compressImage(await App.readFile(file), 600, 0.82);
-          cur.photo = await App.files.add(file.name, url.slice(5, url.indexOf(';')), url);
-          App.commit('Foto tersimpan');
-        });
-        root.querySelector('#ath-photo-del')?.addEventListener('click', () => { cur.photo = null; App.commit('Foto dihapus'); });
-      }
       root.querySelector('#ath-cancel')?.addEventListener('click', () => { editId = null; App.rerender(); });
       root.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => { editId = b.dataset.edit; App.rerender(); window.scrollTo(0, 0); }));
       root.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
@@ -227,15 +276,6 @@
     },
   };
 
-  function parseDate(s) {
-    s = (s || '').trim();
-    if (!s) return '';
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-    const m = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
-    if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
-    return '';
-  }
-
   function importPaste(text) {
     const res = { added: 0, skipped: [] };
     const findK = (s) => {
@@ -250,9 +290,9 @@
       const gender = g.startsWith('P') && !g.startsWith('PA') ? 'P' : g.startsWith('L') || g.startsWith('PA') ? 'L' : null;
       const k = findK(c[2]);
       if (!name || !gender || !k) { res.skipped.push(`Baris ${i + 1}: ${line.slice(0, 60)}`); return; }
-      const codes = (c[4] || '').split(/[,;\s]+/).map((x) => x.trim().toUpperCase()).filter(Boolean);
+      const codes = (c[3] || '').split(/[,;\s]+/).map((x) => x.trim().toUpperCase()).filter(Boolean);
       const events = codes.map((code) => App.S.events.find((ev) => ev.code.toUpperCase() === code)).filter(Boolean).map((ev) => ev.id);
-      App.S.athletes.push({ id: App.uid('a_'), name, gender, kontingenId: k.id, birth: parseDate(c[3]), events });
+      App.S.athletes.push({ id: App.uid('a_'), name, gender, kontingenId: k.id, events });
       res.added++;
     });
     return res;

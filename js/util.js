@@ -29,22 +29,6 @@ window.App = window.App || {};
     if (y1 === y2 && m1 === m2) return `${d1} - ${d2} ${BULAN[m2 - 1]} ${y2}`;
     return `${App.fmtDate(a)} - ${App.fmtDate(b)}`;
   };
-  // Umur "X tahun Y bulan Z hari" pada tanggal acuan (default: hari pertama event).
-  App.age = (birth, ref) => {
-    if (!birth) return null;
-    ref = ref || App.S?.event?.dateStart || App.today();
-    const [y1, m1, d1] = birth.split('-').map(Number);
-    const [y2, m2, d2] = ref.split('-').map(Number);
-    if (!y1 || !y2) return null;
-    let y = y2 - y1, m = m2 - m1, d = d2 - d1;
-    if (d < 0) { m--; d += new Date(y2, m2 - 1, 0).getDate(); } // hari dalam bulan sebelum bulan acuan
-    if (m < 0) { y--; m += 12; }
-    return y < 0 ? null : { y, m, d };
-  };
-  App.ageText = (birth, ref) => {
-    const a = App.age(birth, ref);
-    return a ? `${a.y} tahun ${a.m} bulan ${a.d} hari` : '';
-  };
   App.today = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

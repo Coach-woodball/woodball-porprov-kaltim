@@ -48,6 +48,7 @@
     logoUrls: Object.fromEntries((S.event.logos || []).map((id) => [id, publicUrl(id)])),
     // dipakai formulir pendaftaran online (tanpa kode akses)
     validation: S.validation,
+    announcements: S.announcements,
     registration: App.reg.publicSettings(S.registration),
     publishedAt: new Date().toISOString(),
   });

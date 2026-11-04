@@ -50,7 +50,7 @@
         <label class="chk"><input type="checkbox" data-setb="validation.separateDisciplines" ${V.separateDisciplines ? 'checked' : ''}> Atlet Stroke tidak boleh bermain di Fairway</label>
         <label class="chk"><input type="checkbox" data-setb="validation.teamStrokeIncluded" ${V.teamStrokeIncluded ? 'checked' : ''}> Single Stroke + Team Stroke dihitung 1 nomor</label>
         <label class="chk"><input type="checkbox" data-setb="validation.perKontingen" ${V.perKontingen ? 'checked' : ''}> Cek batas entri per kontingen (diatur per nomor)</label>
-        <div class="grid3">${field('validation.maxEventsPerAthlete', 'Maks. nomor per atlet', V.maxEventsPerAthlete, 'number')}${field('validation.minBirthDate', 'Lahir paling awal (batas usia)', V.minBirthDate, 'date')}</div>
+        <div class="grid3">${field('validation.maxEventsPerAthlete', 'Maks. nomor per atlet', V.maxEventsPerAthlete, 'number')}</div>
       </div>
 
       <div class="card"><h3>PIN Admin</h3><button class="btn ghost" id="pin-change">Ganti PIN</button></div>`;
@@ -183,8 +183,7 @@
     const NAMA_L = ['Rahmat', 'Hikmal', 'Alfian', 'Rosid', 'Aidil', 'Fajar', 'Yadi', 'Imran', 'Indaka', 'Zidane', 'Bobby', 'Zaki', 'Reagan', 'Fahri', 'Riski', 'Akmal', 'Agus', 'Rio', 'Henri', 'Nelzhen'];
     const NAMA_P = ['Jumarni', 'Jihan', 'Alia', 'Hasniar', 'Rita', 'Husnul', 'Desi', 'Hikma', 'Andina', 'Hafifa', 'Vassya', 'Ivana', 'Denis', 'Raehana', 'Pinkan', 'Juniarti', 'Ajeng', 'Safa', 'Liya', 'Aulia'];
     const ks = S.kontingen.slice(0, 8);
-    let n = 0;
-    const add = (name, gender, k, events) => { const a = { id: App.uid('a_'), name, gender, kontingenId: k.id, birth: '2004-0' + (1 + (n++ % 9)) + '-15', events }; S.athletes.push(a); return a; };
+    const add = (name, gender, k, events) => { const a = { id: App.uid('a_'), name, gender, kontingenId: k.id, events }; S.athletes.push(a); return a; };
     ks.forEach((k, ki) => {
       [['L', 'PA', NAMA_L], ['P', 'PI', NAMA_P]].forEach(([g, sfx, names]) => {
         const nm = (i) => `${names[(ki * 3 + i) % names.length]} ${k.short}${i + 1}`;

@@ -65,6 +65,7 @@
   }
 
   App.views.display = {
+    admin: true,
     bare: true,
     render() {
       const p = prefs();

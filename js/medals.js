@@ -50,7 +50,6 @@
       }
       if (V.maxEventsPerAthlete && count > V.maxEventsPerAthlete) warn(`${a.name} (${App.kShort(a.kontingenId)}) mengikuti ${count} nomor, melebihi batas ${V.maxEventsPerAthlete}.`);
       if (V.separateDisciplines && evs.some((x) => x.discipline === 'stroke') && evs.some((x) => x.discipline === 'fairway')) warn(`${a.name} (${App.kShort(a.kontingenId)}) bermain di Stroke dan Fairway sekaligus.`);
-      if (V.minBirthDate && a.birth && a.birth < V.minBirthDate) warn(`${a.name} (${App.kShort(a.kontingenId)}) lahir ${App.fmtDate(a.birth)}, sebelum batas ${App.fmtDate(V.minBirthDate)}.`);
     });
 
     App.S.events.forEach((ev) => {
