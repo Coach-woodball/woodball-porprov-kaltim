@@ -158,6 +158,35 @@
     return assignRanks(ev, rows, primary);
   };
 
+  // Rincian Team Stroke: skor tiap gate per pemain (dari nomor single) dan jumlah tim per gate.
+  // Hanya pemain yang dihitung (countBest terbaik) yang dijumlahkan.
+  St.teamDetail = (ev) => {
+    const src = App.event(ev.config.sourceEvent);
+    if (!src) return null;
+    const cols = [];
+    (ev.config.sourceRounds || []).forEach((ri) => {
+      const rc = src.config.rounds[ri];
+      if (rc) for (let g = 0; g < rc.gates; g++) cols.push({ ri, g, round: rc.name });
+    });
+    const teams = St.ranking(ev).map((row) => {
+      const counted = new Set(row.members.filter((m) => m.played > 0).sort((a, b) => a.total - b.total).slice(0, ev.config.countBest).map((m) => m.athleteId));
+      const members = row.members.map((m) => {
+        const e = App.entriesOf(src.id).find((x) => x.members.includes(m.athleteId));
+        const vals = cols.map((c) => {
+          const v = e ? St.score(src, c.ri, e.id).g[c.g] : null;
+          return v === null || v === undefined || v === '' ? null : +v;
+        });
+        return { athleteId: m.athleteId, counted: counted.has(m.athleteId), vals, total: m.total, played: m.played };
+      });
+      const sums = cols.map((_, i) => {
+        const xs = members.filter((m) => m.counted).map((m) => m.vals[i]).filter((v) => v !== null);
+        return xs.length ? xs.reduce((s, v) => s + v, 0) : null;
+      });
+      return { row, members, sums };
+    });
+    return { src, cols, teams };
+  };
+
   // ---------- Grup / flight ----------
   St.spreadOrder = (ids) => {
     const shuffled = App.shuffle(ids);

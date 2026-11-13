@@ -4,10 +4,10 @@
 
   const sideName = (id) => (id === 'BYE' ? 'BYE' : id ? App.entryLabel(App.entry(id)) : '<span class="muted">menunggu</span>');
 
-  App.matchScoreText = (ev, r) => {
+  App.matchScoreText = (ev, r, flip) => {
     if (r.status === 'bye') return 'BYE';
     if (r.status === 'none') return '';
-    let t = `${r.sa} - ${r.sb}`;
+    let t = flip ? `${r.sb} - ${r.sa}` : `${r.sa} - ${r.sb}`;
     if (r.sd) t += ` (SD)`;
     return t;
   };
@@ -29,9 +29,10 @@
     ${matches.map((m) => {
       const r = Fw.matchResult(ev, m);
       if (r.a === 'BYE' && r.b === 'BYE') return '';
+      const [x, y] = Fw.flip(r) ? ['b', 'a'] : ['a', 'b'];
       return `<tr><td class="small">${esc(Fw.stageLabel(ev, m))}${m.lane ? ` · Lap. ${esc(m.lane)}` : ''}${m.time ? ` · ${esc(m.time)}` : ''}</td>
-        <td class="${r.winner === 'a' ? 'win' : ''}">${sideName(r.a)}</td><td class="c big">${App.matchScoreText(ev, r)}</td>
-        <td class="${r.winner === 'b' ? 'win' : ''}">${sideName(r.b)}</td><td>${App.ui.statusPill(r.status)}</td>
+        <td class="${r.winner === x ? 'win' : ''}">${sideName(r[x])}</td><td class="c big">${App.matchScoreText(ev, r, x === 'b')}</td>
+        <td class="${r.winner === y ? 'win' : ''}">${sideName(r[y])}</td><td>${App.ui.statusPill(r.status)}</td>
         ${link ? `<td>${r.a && r.b && r.status !== 'bye' ? `<a class="btn sm" href="#/match/${ev.id}/${m.id}">Input</a>` : ''}</td>` : ''}</tr>`;
     }).join('')}</tbody></table></div>`;
 
@@ -43,8 +44,8 @@
       const r = Fw.matchResult(ev, m);
       const nm = (id) => (id === 'BYE' ? '<i>BYE</i>' : id ? `${esc(App.entryName(App.entry(id)))} <small>${esc(App.kShort(App.entry(id)?.kontingenId))}</small>` : '<span class="muted">…</span>');
       const sc = (s) => (r.status === 'none' || r.status === 'bye' ? '' : s);
-      const inner = `<div class="bm-row ${r.winner === 'a' ? 'win' : ''}"><span>${nm(r.a)}</span><b>${sc(r.sa)}</b></div>
-        <div class="bm-row ${r.winner === 'b' ? 'win' : ''}"><span>${nm(r.b)}</span><b>${sc(r.sb)}</b></div>
+      const row = (s) => `<div class="bm-row ${r.winner === s ? 'win' : ''}"><span>${nm(r[s])}</span><b>${sc(s === 'a' ? r.sa : r.sb)}</b></div>`;
+      const inner = `${Fw.flip(r) ? row('b') + row('a') : row('a') + row('b')}
         ${r.sd ? `<div class="bm-sd">Sudden death PK${r.sd}</div>` : ''}`;
       const can = link && r.a && r.b && r.status !== 'bye';
       // data-src: pertandingan asal pemenang (untuk garis + panah penghubung)

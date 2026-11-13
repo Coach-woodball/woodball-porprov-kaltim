@@ -14,7 +14,7 @@
 
   App.eventResultHtml = (ev, link) => {
     let html = App.podiumHtml(ev);
-    if (ev.discipline === 'stroke') return html + App.strokeRankingTable(ev);
+    if (ev.discipline === 'stroke') return html + App.strokeRankingTable(ev) + (ev.kind === 'team' ? `<h4>Skor per gate</h4>${App.teamGateTable(ev)}` : '');
     const d = Fw.data(ev);
     if (Fw.koMatches(ev).length) html += `<h4>Bagan</h4>${App.bracketHtml(ev, link)}`;
     d.groups.forEach((g) => { html += `<h4>Grup ${esc(g.name)}</h4>${App.standingsTable(ev, g)}${App.matchListHtml(ev, Fw.groupMatches(ev, g.id), link)}`; });

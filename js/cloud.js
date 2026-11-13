@@ -39,7 +39,8 @@
     version: S.version,
     event: { ...S.event },
     menu: S.menu,
-    kontingen: S.kontingen.map(({ id, name, short }) => ({ id, name, short })),
+    // official & pelatih: nama dan peran saja (untuk verifikasi sertifikat)
+    kontingen: S.kontingen.map(({ id, name, short, officials }) => ({ id, name, short, officials: (officials || []).map(({ id: oid, name: on, role }) => ({ id: oid, name: on, role })) })),
     athletes: S.athletes.map(({ id, name, gender, kontingenId, events }) => ({ id, name, gender, kontingenId, events })),
     events: S.events,
     entries: S.entries,

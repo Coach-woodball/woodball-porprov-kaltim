@@ -112,6 +112,8 @@
       certIntro: 'Diberikan kepada :',
       certBody: 'Sebagai JUARA {juara} ({medali}) Nomor {nomor} pada Cabang Olahraga Woodball {event} yang dilaksanakan pada tanggal {tanggal} di {kota}.',
       certPartBody: 'Sebagai PESERTA Nomor {nomor} pada Cabang Olahraga Woodball {event} yang dilaksanakan pada tanggal {tanggal} di {kota}.',
+      certOfficialBody: 'Sebagai {peran} Kontingen {kontingen} pada Cabang Olahraga Woodball {event} yang dilaksanakan pada tanggal {tanggal} di {kota}.',
+      certNumber: '{no}/WB-PORPROV/XI/2026',
       themeColor: '#16a34a',
       accentColor: '#dc2626',
     },

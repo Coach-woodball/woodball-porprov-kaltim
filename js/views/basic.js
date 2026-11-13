@@ -133,11 +133,14 @@
       const rows = App.S.kontingen.map((k) => {
         const nA = App.S.athletes.filter((a) => a.kontingenId === k.id).length;
         return `<tr data-id="${k.id}"><td><input class="k-name" value="${esc(k.name)}"></td><td><input class="k-short" value="${esc(k.short)}" style="max-width:120px"></td>
-          <td class="c">${nA}</td><td><button class="btn sm danger k-del" ${nA ? 'disabled title="Masih ada atlet"' : ''}>Hapus</button></td></tr>`;
+          <td class="c">${nA}</td>
+          <td><div class="off-chips">${(k.officials || []).map((o) => `<span class="off-chip"><b>${esc(o.name)}</b> <small>${esc(o.role)}</small><button class="x" data-off-del="${o.id}" title="Hapus">×</button></span>`).join('')}
+            <button class="btn xs ghost k-off-add">+ Tambah</button></div></td>
+          <td><button class="btn sm danger k-del" ${nA ? 'disabled title="Masih ada atlet"' : ''}>Hapus</button></td></tr>`;
       }).join('');
       return `<div class="card"><h2>${esc(App.S.menu.kontingen)} (Kab/Kota)</h2>
         <p class="muted">Nama lengkap dipakai di dokumen; singkatan dipakai di tabel & bagan.</p>
-        <div class="table-wrap"><table><thead><tr><th>Nama</th><th>Singkatan</th><th>Atlet</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Nama</th><th>Singkatan</th><th>Atlet</th><th>Official &amp; pelatih <small class="muted">(untuk sertifikat)</small></th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
         <form class="row gap" id="k-add"><input name="name" placeholder="Nama kontingen baru" required><input name="short" placeholder="Singkatan" style="max-width:140px"><button class="btn">+ Tambah</button></form>
       </div>`;
     },
@@ -146,6 +149,20 @@
         const k = App.kontingen(tr.dataset.id);
         tr.querySelector('.k-name').addEventListener('change', (e) => { k.name = e.target.value.trim(); App.save(); });
         tr.querySelector('.k-short').addEventListener('change', (e) => { k.short = e.target.value.trim(); App.save(); });
+        tr.querySelector('.k-off-add').addEventListener('click', async () => {
+          const v = await App.dialog({ title: 'Tambah official / pelatih', text: `Kontingen ${k.name}`, ok: 'Tambah',
+            fields: [{ label: 'Nama lengkap' }, { label: 'Jabatan', value: 'Pelatih', placeholder: 'Pelatih, Official, Manajer Tim' }] });
+          if (!v || !v[0].trim()) return;
+          k.officials = k.officials || [];
+          k.officials.push({ id: App.uid('o_'), name: v[0].trim(), role: v[1].trim() || 'Official' });
+          App.commit('Official ditambahkan');
+        });
+        tr.querySelectorAll('[data-off-del]').forEach((b) => b.addEventListener('click', async () => {
+          const o = k.officials.find((x) => x.id === b.dataset.offDel);
+          if (!(await App.ask(`Hapus ${o.name} dari official ${k.name}?`))) return;
+          k.officials = k.officials.filter((x) => x.id !== o.id);
+          App.commit('Official dihapus');
+        }));
         tr.querySelector('.k-del').addEventListener('click', async () => {
           if (!(await App.ask(`Hapus kontingen ${k.name}?`))) return;
           App.S.kontingen = App.S.kontingen.filter((x) => x.id !== k.id);

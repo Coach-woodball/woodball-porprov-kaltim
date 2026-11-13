@@ -2,7 +2,7 @@
 // Cetak lewat dialog browser -> pilih "Simpan sebagai PDF" atau printer.
 (function (App) {
   const esc = App.esc, St = App.stroke, Fw = App.fairway;
-  const opts = { filled: true, date: '', withParticipants: false, layout: 'sheet' };
+  const opts = { filled: true, date: '', certType: 'juara', layout: 'sheet' };
 
   const DOCS = {
     'scorecard-stroke': 'Score Card Stroke',
@@ -114,28 +114,33 @@
     const gr = Fw.gameResult(ev, g);
     const N = ev.config.gates;
     const filled = opts.filled;
-    const nA = Fw.gamePlayers(ev, r.a, g), nB = Fw.gamePlayers(ev, r.b, g);
+    const nA0 = Fw.gamePlayers(ev, r.a, g), nB0 = Fw.gamePlayers(ev, r.b, g);
+    const sw = filled && gr.played && (gr.pb > gr.pa || (gr.pa === gr.pb && gr.winner === 'b'));
+    const order = sw ? [1, 0] : [0, 1]; // order[baris] = sisi data (0 = peserta a, 1 = peserta b)
+    const ids = [r.a, r.b], names = [nA0, nB0];
+    const nA = names[order[0]], nB = names[order[1]];
     const extraN = Math.max(3, (g.extra || []).filter((p) => p && p[0] != null).length);
     const val = (pair, side) => (filled && pair && pair[side] != null && pair[side] !== '' ? `<b class="sv">${pair[side]}</b>` : '');
-    const rowFor = (side, id, name) => `<tr><td class="c">${side + 1}</td><td class="nm"><b>${esc(name)}</b><br><small>${esc(App.kName(App.entry(id)?.kontingenId))}</small></td>
+    const rowFor = (pos, side, id, name) => `<tr><td class="c">${pos + 1}</td><td class="nm"><b>${esc(name)}</b><br><small>${esc(App.kName(App.entry(id)?.kontingenId))}</small></td>
       ${Array.from({ length: N }, (_, i) => `<td class="gc">${val(g.gates[i], side) || (filled ? '' : tickGrid())}</td>`).join('')}
       ${Array.from({ length: extraN }, (_, i) => `<td class="gc">${val((g.extra || [])[i], side)}</td>`).join('')}</tr>`;
     const winRow = Array.from({ length: N }, (_, i) => {
       const p = g.gates[i];
       if (!filled || !p || p[0] == null || p[1] == null) return '<td></td>';
-      return `<td class="c">${+p[0] < +p[1] ? '1' : +p[1] < +p[0] ? '2' : '='}</td>`;
+      return `<td class="c">${+p[0] < +p[1] ? order.indexOf(0) + 1 : +p[1] < +p[0] ? order.indexOf(1) + 1 : '='}</td>`;
     }).join('') + Array.from({ length: extraN }, (_, i) => {
       const p = (g.extra || [])[i];
       if (!filled || !p || p[0] == null || p[1] == null) return '<td></td>';
-      return `<td class="c">${+p[0] < +p[1] ? '1' : +p[1] < +p[0] ? '2' : '='}</td>`;
+      return `<td class="c">${+p[0] < +p[1] ? order.indexOf(0) + 1 : +p[1] < +p[0] ? order.indexOf(1) + 1 : '='}</td>`;
     }).join('');
-    const winner = filled && gr.winner ? (gr.winner === 'a' ? nA : nB) : '';
+    const winner = filled && gr.winner ? (gr.winner === 'a' ? nA0 : nB0) : '';
+    const win = [gr.pa, gr.pb];
     return `<section class="page sc">${kop('FAIRWAY COMPETITION SCORE CARD')}
       <div class="info"><span>Kategori: <b>${esc(ev.name)}</b></span><span>Babak: <b>${esc(Fw.stageLabel(ev, m))}</b></span>${g.label ? `<span>Partai: <b>${esc(g.label)}</b></span>` : ''}
         <span>Lapangan: <b>${esc(m.lane || '....')}</b></span><span>Tanggal: <b>${esc(m.date ? App.fmtDate(m.date) : '....')}</b></span><span>Jam: <b>${esc(m.time || '....')}</b></span></div>
       <table class="pt sc-table"><thead><tr><th>No</th><th>Nama / Kab-Kota</th>${Array.from({ length: N }, (_, i) => `<th>Gate ${i + 1}</th>`).join('')}${Array.from({ length: extraN }, (_, i) => `<th>PK ${i + 1}</th>`).join('')}</tr></thead>
-      <tbody>${rowFor(0, r.a, nA)}${rowFor(1, r.b, nB)}<tr><td colspan="2" class="c"><b>WINNER</b></td>${winRow}</tr></tbody></table>
-      <table class="pt result-row"><tr><td><b>RESULT</b></td><td>No.1 WIN : <b>${filled && gr.played ? gr.pa : ''}</b></td><td>No.2 WIN : <b>${filled && gr.played ? gr.pb : ''}</b></td><td>EVEN : <b>${filled && gr.played ? gr.even : ''}</b></td><td class="w">WINNER : <b>${esc(winner)}</b></td></tr></table>
+      <tbody>${rowFor(0, order[0], ids[order[0]], nA)}${rowFor(1, order[1], ids[order[1]], nB)}<tr><td colspan="2" class="c"><b>WINNER</b></td>${winRow}</tr></tbody></table>
+      <table class="pt result-row"><tr><td><b>RESULT</b></td><td>No.1 WIN : <b>${filled && gr.played ? win[order[0]] : ''}</b></td><td>No.2 WIN : <b>${filled && gr.played ? win[order[1]] : ''}</b></td><td>EVEN : <b>${filled && gr.played ? gr.even : ''}</b></td><td class="w">WINNER : <b>${esc(winner)}</b></td></tr></table>
       <div class="signs"><div class="sign small"><div>Pemain No. 1</div><div class="sign-space"></div><div class="sign-name">${esc(nA)}</div></div>
         <div class="sign small"><div>Pemain No. 2</div><div class="sign-space"></div><div class="sign-name">${esc(nB)}</div></div>
         <div class="sign small"><div>Wasit</div><div class="sign-space"></div><div class="sign-name">(............................)</div></div></div>
@@ -167,8 +172,11 @@
       const ko = Fw.koMatches(ev);
       if (ko.length) body += `<h4>Hasil pertandingan bagan</h4>${matchesPrint(ev, ko)}`;
     }
+    // Team Stroke: halaman tambahan berisi skor tiap pemain per gate dan jumlah tim.
+    const teamGates = ev.discipline === 'stroke' && ev.kind === 'team'
+      ? `<section class="page flow">${kop('SKOR PER GATE', esc(ev.name))}${App.teamGateTable(ev, { print: true })}</section>` : '';
     return `<section class="page flow">${kop('HASIL RESMI', `${esc(ev.name)}`)}${body}
-      <div class="signs end">${signBox(signer.title, signer.name, true)}</div></section>`;
+      <div class="signs end">${signBox(signer.title, signer.name, true)}</div></section>${teamGates}`;
   }
 
   function standingsPrint(ev, g) {
@@ -178,7 +186,12 @@
 
   function matchesPrint(ev, ms) {
     return `<table class="pt"><thead><tr><th>Babak</th><th>Peserta 1</th><th>Skor</th><th>Peserta 2</th></tr></thead><tbody>
-      ${ms.map((m) => { const r = Fw.matchResult(ev, m); if (r.status === 'bye' || (r.a === 'BYE' && r.b === 'BYE')) return ''; return `<tr><td>${esc(Fw.stageLabel(ev, m))}</td><td class="${r.winner === 'a' ? 'win' : ''}">${esc(App.entryLabel(App.entry(r.a)))}</td><td class="c">${App.matchScoreText(ev, r)}</td><td class="${r.winner === 'b' ? 'win' : ''}">${esc(App.entryLabel(App.entry(r.b)))}</td></tr>`; }).join('')}</tbody></table>`;
+      ${ms.map((m) => {
+        const r = Fw.matchResult(ev, m);
+        if (r.status === 'bye' || (r.a === 'BYE' && r.b === 'BYE')) return '';
+        const [x, y] = Fw.flip(r) ? ['b', 'a'] : ['a', 'b'];
+        return `<tr><td>${esc(Fw.stageLabel(ev, m))}</td><td class="${r.winner === x ? 'win' : ''}">${esc(App.entryLabel(App.entry(r[x])))}</td><td class="c">${App.matchScoreText(ev, r, x === 'b')}</td><td class="${r.winner === y ? 'win' : ''}">${esc(App.entryLabel(App.entry(r[y])))}</td></tr>`;
+      }).join('')}</tbody></table>`;
   }
 
   function bracketPage(ev) {
@@ -192,43 +205,84 @@
   }
 
   // ---------- Sertifikat ----------
-  function certPage(ev, athleteId, kontingenId, rank) {
+  const TIER = { 1: 'gold', 2: 'silver', 3: 'bronze' };
+  const certNo = (n) => (App.S.event.certNumber || '{no}').replace('{no}', String(n).padStart(3, '0'));
+
+  // Daftar lengkap sertifikat dengan urutan tetap (nomor urut stabil): juara per nomor, peserta, lalu official & pelatih.
+  App.certList = () => {
+    const out = [];
+    const medalists = new Set();
+    App.S.events.forEach((ev) => {
+      App.placements(ev).list.filter((p) => p.rank <= 3).sort((x, y) => x.rank - y.rank).forEach((p) => {
+        const en = App.entry(p.entryId);
+        if (!en) return;
+        en.members.filter(Boolean).forEach((aid) => {
+          medalists.add(aid);
+          out.push({ type: 'juara', ev, rank: p.rank, name: App.athName(aid), kontingenId: en.kontingenId, athleteId: aid });
+        });
+      });
+    });
+    App.S.athletes.slice().sort((x, y) => App.kName(x.kontingenId).localeCompare(App.kName(y.kontingenId)) || x.name.localeCompare(y.name)).forEach((at) => {
+      if (medalists.has(at.id)) return;
+      const evs = App.S.entries.filter((e) => e.members.includes(at.id)).map((e) => App.event(e.eventId)).filter(Boolean);
+      if (evs.length) out.push({ type: 'peserta', evs, name: at.name, kontingenId: at.kontingenId, athleteId: at.id });
+    });
+    App.S.kontingen.forEach((k) => (k.officials || []).forEach((o) => out.push({ type: 'official', role: o.role, name: o.name, kontingenId: k.id })));
+    out.forEach((c, i) => (c.no = certNo(i + 1)));
+    return out;
+  };
+  App.certLabel = (c) => (c.type === 'juara' ? `Juara ${App.ROMAWI[c.rank]} (${App.MEDAL[c.rank]}) · ${c.ev.name}`
+    : c.type === 'peserta' ? `Peserta · ${c.evs.map((e) => e.name).join(', ')}` : `${c.role} kontingen`);
+
+  const verifyUrl = (no) => location.href.split('#')[0].split('?')[0] + '#/verifikasi/' + encodeURIComponent(no);
+  const qrSvg = (text) => {
+    if (!window.qrcode) return '';
+    const q = window.qrcode(0, 'M');
+    q.addData(text);
+    q.make();
+    return q.createSvgTag({ cellSize: 2, margin: 0, scalable: true });
+  };
+
+  function certPage(c) {
     const E = App.S.event;
-    const fill = (t) => t.replace(/\{(\w+)\}/g, (_, k) => ({
-      nama: App.athName(athleteId), kontingen: App.kName(kontingenId), nomor: ev.name,
-      juara: rank ? App.ROMAWI[rank] : '', medali: rank ? App.MEDAL[rank] : '', event: E.title,
+    const nomor = c.type === 'juara' ? c.ev.name : c.type === 'peserta' ? c.evs.map((e) => e.name).join(', ') : '';
+    const fill = (t) => (t || '').replace(/\{(\w+)\}/g, (_, k) => ({
+      nama: c.name, kontingen: App.kName(c.kontingenId), nomor, peran: (c.role || '').toUpperCase(),
+      juara: c.rank ? App.ROMAWI[c.rank] : '', medali: c.rank ? App.MEDAL[c.rank] : '', event: E.title,
       tanggal: App.fmtDateRange(E.dateStart, E.dateEnd), kota: E.city,
     }[k] ?? `{${k}}`));
+    const body = fill(c.type === 'juara' ? E.certBody : c.type === 'peserta' ? E.certPartBody : E.certOfficialBody);
+    const tier = c.type === 'juara' ? TIER[c.rank] : c.type === 'peserta' ? 'part' : 'off';
+    const badge = c.type === 'juara' ? `Juara ${App.ROMAWI[c.rank]} · Medali ${App.MEDAL[c.rank]}` : c.type === 'peserta' ? 'Peserta' : c.role;
     const logos = (E.logos || []).map((id) => App.files.url(id)).filter(Boolean);
-    return `<section class="page cert"><div class="cert-frame"><div class="cert-inner">
-      <div class="cert-logos">${logos.map((u) => `<img src="${u}" alt="">`).join('')}</div>
-      <div class="cert-title">${esc(E.certTitle)}</div>
-      <div class="cert-intro">${esc(E.certIntro)}</div>
-      <div class="cert-name">${esc(App.athName(athleteId))}</div>
-      <div class="cert-k">Kontingen ${esc(App.kName(kontingenId))}</div>
-      <div class="cert-body">${esc(fill(rank ? E.certBody : E.certPartBody))}</div>
-      <div class="cert-date">${signDate()}</div>
-      <div class="signs cert-signs">${E.signers.map((s) => signBox(s.title, s.name)).join('')}</div>
-    </div></div></section>`;
+    // Desain kaca F4: satu panel kaca di atas latar bercahaya hijau-merah; lencana bulat hanya untuk peringkat juara.
+    return `<section class="page cert2 ${tier}"><div class="c2-card">
+      <div class="c2-head">
+        ${logos.length ? `<div class="c2-logos">${logos.map((u) => `<img src="${u}" alt="">`).join('')}</div>` : '<div></div>'}
+        <div class="c2-org">Cabang Olahraga ${esc(E.sport)}<br>${esc(E.shortName)}</div>
+      </div>
+      <div class="c2-mid">
+        <div class="c2-top"><div class="c2-who">
+          <div class="c2-title">${esc(E.certTitle)}</div>
+          <div class="c2-intro">${esc(E.certIntro)}</div>
+          <div class="c2-name">${esc(c.name)}</div>
+          <div class="c2-k">Kontingen ${esc(App.kName(c.kontingenId))}</div>
+        </div>${c.type === 'juara' ? `<div class="c2-medal-ring"><b>${App.ROMAWI[c.rank]}</b><span>${esc(App.MEDAL[c.rank])}</span></div>` : ''}</div>
+        <div class="c2-tags"><span class="c2-chip c2-role">${esc(badge)}</span>${c.type === 'juara' ? `<span class="c2-chip">${esc(c.ev.name)}</span>` : ''}</div>
+        <p class="c2-body">${esc(body)}</p>
+      </div>
+      <div class="c2-foot">
+        <div class="c2-signs"><div class="c2-date">${signDate()}</div><div class="c2-signrow">${E.signers.map((s) => signBox(s.title, s.name)).join('')}</div></div>
+        <div class="c2-qr">${qrSvg(verifyUrl(c.no))}<div><b>Pindai untuk verifikasi</b>No. ${esc(c.no)}</div></div>
+      </div>
+    </div></section>`;
   }
 
   function certPages(ev) {
-    const evs = ev ? [ev] : App.S.events;
-    let html = '';
-    evs.forEach((e) => {
-      const pl = App.placements(e).list.filter((p) => p.rank <= 3);
-      const ranked = new Set();
-      pl.forEach((p) => {
-        const en = App.entry(p.entryId);
-        if (!en) return;
-        ranked.add(en.id);
-        en.members.filter(Boolean).forEach((aid) => (html += certPage(e, aid, en.kontingenId, p.rank)));
-      });
-      if (opts.withParticipants) {
-        App.entriesOf(e.id).filter((en) => !ranked.has(en.id)).forEach((en) => en.members.filter(Boolean).forEach((aid) => (html += certPage(e, aid, en.kontingenId, 0))));
-      }
-    });
-    return html || `<section class="page">${kop('SERTIFIKAT')}<p class="c">Belum ada juara.</p></section>`;
+    const t = opts.certType;
+    const list = App.certList().filter((c) => (t === 'semua' || c.type === t)
+      && (!ev || (c.type === 'juara' && c.ev.id === ev.id) || (c.type === 'peserta' && c.evs.some((e) => e.id === ev.id))));
+    return list.map(certPage).join('') || `<section class="page">${kop('SERTIFIKAT')}<p class="c">${t === 'official' ? 'Belum ada official/pelatih. Tambahkan di menu Kontingen.' : 'Belum ada penerima sertifikat untuk pilihan ini.'}</p></section>`;
   }
 
   function medalsPage() {
@@ -284,7 +338,9 @@
 
   App.views.print = {
     render(params) {
-      const doc = DOCS[params[0]] ? params[0] : 'result';
+      let doc = DOCS[params[0]] ? params[0] : 'result';
+      if (doc === 'certificates' && !App.isAdmin()) doc = 'result'; // sertifikat hanya dicetak admin
+      const docs = Object.entries(DOCS).filter(([k]) => k !== 'certificates' || App.isAdmin());
       const p = params.slice(1);
       const ev = App.event(p[0]);
       const needEv = !['medals', 'athletes'].includes(doc);
@@ -296,17 +352,18 @@
       }
       return `<div class="print-toolbar no-print card">
           <div class="row gap wrap">
-            <select id="pr-doc">${App.ui.options(Object.entries(DOCS), doc)}</select>
+            <select id="pr-doc">${App.ui.options(docs, doc)}</select>
             ${needEv ? `<select id="pr-ev">${doc === 'certificates' ? '<option value="">Semua nomor</option>' : ''}${App.ui.options(evList.map((e) => [e.id, e.name]), ev ? ev.id : '')}</select>` : ''}
             ${extra}
             ${doc.startsWith('scorecard') ? `<label class="chk"><input type="checkbox" id="pr-filled" ${opts.filled ? 'checked' : ''}> Isi skor</label>` : ''}
-            ${doc === 'certificates' ? `<label class="chk"><input type="checkbox" id="pr-part" ${opts.withParticipants ? 'checked' : ''}> Termasuk peserta (non-juara)</label>` : ''}
+            ${doc === 'certificates' ? `<select id="pr-ctype">${App.ui.options([['juara', 'Juara (1-3)'], ['peserta', 'Peserta'], ['official', 'Official & pelatih'], ['semua', 'Semua']], opts.certType)}</select>` : ''}
             ${['result', 'medals', 'certificates'].includes(doc) ? `<label class="mini">Tanggal tanda tangan<input type="date" id="pr-date" value="${opts.date || App.today()}"></label>` : ''}
             <div class="spacer"></div>
             <button class="btn" id="pr-go">🖨️ Cetak / Simpan PDF</button>
           </div>
-          <p class="muted small">Di dialog cetak pilih <b>Simpan sebagai PDF</b> atau printer, ukuran <b>A4</b>, orientasi <b>Lanskap</b>, margin <b>Default/Tidak ada</b>, dan centang <b>Grafis latar belakang</b>.</p>
+          <p class="muted small">Di dialog cetak pilih <b>Simpan sebagai PDF</b> atau printer, ukuran ${doc === 'certificates' ? '<b>F4 / Folio (330 × 215 mm)</b>' : '<b>A4</b>'}, orientasi <b>Lanskap</b>, margin <b>Default/Tidak ada</b>, dan centang <b>Grafis latar belakang</b>.</p>
         </div>
+        ${doc === 'certificates' ? `<p class="muted small no-print">Kode QR di sertifikat membuka halaman verifikasi. Cetak dari alamat online (Vercel) agar kode QR bisa dipindai dari HP mana saja.</p>` : ''}
         <div class="print-area">${needEv && !ev && doc !== 'certificates' ? '<p class="c no-print">Pilih nomor terlebih dahulu.</p>' : buildPages(doc, p)}</div>`;
     },
     mount(root, params) {
@@ -317,18 +374,33 @@
       root.querySelector('#pr-round')?.addEventListener('change', (e) => go(doc, params[1], e.target.value));
       root.querySelector('#pr-layout')?.addEventListener('change', (e) => { opts.layout = e.target.value; App.rerender(); });
       root.querySelector('#pr-filled')?.addEventListener('change', (e) => { opts.filled = e.target.checked; App.rerender(); });
-      root.querySelector('#pr-part')?.addEventListener('change', (e) => { opts.withParticipants = e.target.checked; App.rerender(); });
+      root.querySelector('#pr-ctype')?.addEventListener('change', (e) => { opts.certType = e.target.value; App.rerender(); });
       root.querySelector('#pr-date')?.addEventListener('change', (e) => { opts.date = e.target.value; App.rerender(); });
       root.querySelector('#pr-go').addEventListener('click', () => window.print());
       // Perkecil pratinjau agar halaman A4 muat di layar (tidak memengaruhi hasil cetak).
       const area = root.querySelector('.print-area');
       const fit = () => {
         if (!area.isConnected) return window.removeEventListener('resize', fit);
-        const pageW = 297 * 96 / 25.4 + 4;
+        const pageW = Math.max(297 * 96 / 25.4, ...Array.from(area.querySelectorAll('.page'), (p) => p.offsetWidth)) + 4; // sertifikat F4 lebih lebar dari A4
         area.style.zoom = Math.min(1, area.parentElement.clientWidth / pageW);
       };
       fit();
       window.addEventListener('resize', fit);
+    },
+  };
+
+  // Halaman verifikasi dari kode QR sertifikat.
+  App.views.verifikasi = {
+    render(params) {
+      const no = params.join('/');
+      const c = App.certList().find((x) => x.no === no);
+      return `<div class="card verify ${c ? 'ok' : 'bad'}">
+        <div class="verify-ic">${c ? '✓' : '!'}</div>
+        <h2>${c ? 'Sertifikat terdaftar' : 'Sertifikat tidak ditemukan'}</h2>
+        ${c ? `<dl><dt>Nama</dt><dd>${esc(c.name)}</dd><dt>Kontingen</dt><dd>${esc(App.kName(c.kontingenId))}</dd>
+          <dt>Keterangan</dt><dd>${esc(App.certLabel(c))}</dd><dt>Nomor</dt><dd>${esc(c.no)}</dd><dt>Kegiatan</dt><dd>${esc(App.S.event.title)}</dd></dl>`
+          : `<p>Nomor <b>${esc(no || '-')}</b> tidak ada di data panitia. Hubungi panitia untuk memastikan keaslian sertifikat.</p>`}
+      </div>`;
     },
   };
 })(window.App);

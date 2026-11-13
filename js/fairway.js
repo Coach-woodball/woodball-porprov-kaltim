@@ -170,6 +170,9 @@
     return rows;
   };
 
+  // Tampilan: tukar posisi bila peserta kedua unggul poin (atau menang saat poin sama), supaya poin lebih besar di atas.
+  Fw.flip = (r) => r.status !== 'bye' && r.status !== 'none' && (r.sb > r.sa || (r.sa === r.sb && r.winner === 'b'));
+
   Fw.groupDone = (ev, groupId) => Fw.groupMatches(ev, groupId).every((m) => Fw.matchResult(ev, m).status === 'done');
 
   // ---------- Bagan gugur ----------

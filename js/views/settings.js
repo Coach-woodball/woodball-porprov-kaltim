@@ -41,6 +41,8 @@
         <div class="grid3">${field('event.certTitle', 'Judul', E.certTitle)}${field('event.certIntro', 'Kalimat pembuka', E.certIntro)}</div>
         <label>Isi (juara)<textarea data-set="event.certBody" rows="3">${esc(E.certBody)}</textarea></label>
         <label>Isi (peserta)<textarea data-set="event.certPartBody" rows="3">${esc(E.certPartBody)}</textarea></label>
+        <label>Isi (official &amp; pelatih) <small>· kode <code>{peran}</code> untuk jabatan</small><textarea data-set="event.certOfficialBody" rows="3">${esc(E.certOfficialBody)}</textarea></label>
+        <div class="grid3">${field('event.certNumber', 'Format nomor sertifikat ({no} = nomor urut)', E.certNumber)}</div>
       </div>
 
       <div class="card"><h3>Label Menu</h3><div class="grid4">${Object.entries(App.S.menu).map(([k, v]) => field('menu.' + k, k, v)).join('')}</div></div>

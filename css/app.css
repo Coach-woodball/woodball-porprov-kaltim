@@ -301,10 +301,10 @@ input.sc.ob { border-color: color-mix(in srgb, var(--accent) 40%, transparent); 
 :root { --sv1-bg: #16a34a; --sv1-tx: #fff; --sv2-bg: rgba(22, 163, 74, .2); --sv2-tx: #0f7a37; --sv4-bg: rgba(245, 158, 11, .2); --sv4-tx: #92400e; --sv5-bg: rgba(220, 38, 38, .16); --sv5-tx: #b91c1c; }
 :root[data-theme="dark"] { --sv2-tx: #6ee7a0; --sv4-tx: #fcd34d; --sv5-tx: #fca5a5; --sv5-bg: rgba(248, 113, 113, .2); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --sv2-tx: #6ee7a0; --sv4-tx: #fcd34d; --sv5-tx: #fca5a5; --sv5-bg: rgba(248, 113, 113, .2); } }
-input.sc.sv1, .sv-legend .sv1 { background: var(--sv1-bg); color: var(--sv1-tx); border-color: transparent; }
-input.sc.sv2, .sv-legend .sv2 { background: var(--sv2-bg); color: var(--sv2-tx); border-color: transparent; }
-input.sc.sv4, .sv-legend .sv4 { background: var(--sv4-bg); color: var(--sv4-tx); border-color: transparent; }
-input.sc.sv5, .sv-legend .sv5 { background: var(--sv5-bg); color: var(--sv5-tx); border-color: transparent; }
+input.sc.sv1, table.team-gates td.sv1, .sv-legend .sv1 { background: var(--sv1-bg); color: var(--sv1-tx); border-color: transparent; }
+input.sc.sv2, table.team-gates td.sv2, .sv-legend .sv2 { background: var(--sv2-bg); color: var(--sv2-tx); border-color: transparent; }
+input.sc.sv4, table.team-gates td.sv4, .sv-legend .sv4 { background: var(--sv4-bg); color: var(--sv4-tx); border-color: transparent; }
+input.sc.sv5, table.team-gates td.sv5, .sv-legend .sv5 { background: var(--sv5-bg); color: var(--sv5-tx); border-color: transparent; }
 .sv-legend { display: inline-flex; align-items: center; gap: 4px; font-size: .78rem; color: var(--muted); }
 .sv-legend i { font-style: normal; font-weight: 700; min-width: 22px; height: 22px; display: inline-grid; place-items: center; border-radius: 7px; background: var(--input); border: 1px solid var(--line); color: var(--text); font-size: .75rem; }
 .gate-ctl { margin-top: 8px; align-items: center; }
@@ -524,17 +524,76 @@ a.bm:hover { border-color: var(--brand); transform: translateY(-1px); }
 .print-bracket .bm-row { font-size: 9.5pt; }
 .print-bracket .bline { stroke: #777; } .print-bracket .bline.won { stroke: #0b5d2a; } .print-bracket .arrow-head { fill: #0b5d2a; }
 .print-bracket .bhead { color: #000; }
-.page.cert { padding: 8mm; height: 210mm; display: flex; overflow: hidden; }
-.cert-frame { border: 3mm double var(--brand); flex: 1; padding: 3mm; display: flex; }
-.cert-inner { border: .6mm solid #b8962e; flex: 1; padding: 7mm 14mm 6mm; text-align: center; display: flex; flex-direction: column; align-items: center; }
-.cert-logos { display: flex; gap: 10mm; justify-content: center; } .cert-logos img { height: 22mm; width: auto; }
-.cert-title { font-size: 28pt; font-weight: 700; letter-spacing: .08em; margin-top: 6mm; color: var(--brand); }
-.cert-intro { font-size: 13pt; margin-top: 4mm; }
-.cert-name { font-size: 26pt; font-weight: 700; margin-top: 3mm; border-bottom: .5mm solid #000; padding: 0 12mm 1mm; font-family: Georgia, serif; }
-.cert-k { font-size: 14pt; margin-top: 2mm; font-weight: 700; }
-.cert-body { font-size: 13pt; max-width: 210mm; margin-top: 5mm; }
-.cert-date { margin-top: 5mm; font-size: 12pt; }
-.cert-signs { width: 100%; margin-top: auto; }
+
+/* ---------- skor per gate Team Stroke ---------- */
+table.team-gates { font-size: .8rem; }
+table.team-gates th, table.team-gates td { padding: 4px 5px; white-space: nowrap; }
+table.team-gates td.nm { min-width: 150px; white-space: normal; }
+table.team-gates .rs { border-left: 2px solid var(--line); }
+table.team-gates tr.tg-sum td { font-weight: 700; background: var(--ok-bg); }
+table.team-gates td.tot { font-weight: 700; }
+table.team-gates tr.tg-team td { border-top: 2px solid var(--line); }
+.page table.team-gates th, .page table.team-gates td { font-size: 7.5pt !important; padding: 1px 2px !important; }
+.page table.team-gates td.nm { min-width: 0; width: 40mm; }
+.page table.team-gates tr.tg-sum td { background: #e3efe6; }
+
+/* ---------- sertifikat: kaca, F4 lanskap (330 × 215 mm; 1 px = 1/96 inci, sama dengan kanvas desain) ---------- */
+@page f4 { size: 330mm 215mm; margin: 0; }
+.page.cert2 {
+  page: f4; width: 330mm; height: 215mm; min-height: 0; padding: 34px; overflow: hidden; display: flex; box-sizing: border-box;
+  --tier: #c9a13b; --tier-tx: #6b4f0a; --dark: color-mix(in srgb, var(--brand) 55%, #000); --red: color-mix(in srgb, var(--accent) 80%, #000);
+  font-family: Montserrat, "Segoe UI", Arial, sans-serif; color: #10231a;
+  background: radial-gradient(620px 520px at 6% 4%, color-mix(in srgb, var(--brand) 45%, transparent), transparent 70%),
+    radial-gradient(560px 480px at 98% 100%, color-mix(in srgb, var(--accent) 32%, transparent), transparent 70%), #edf3ef;
+}
+.page.cert2.silver { --tier: #8d96a1; --tier-tx: #3f4652; } .page.cert2.bronze { --tier: #b87333; --tier-tx: #7c3f12; }
+.c2-card { flex: 1; min-width: 0; display: flex; flex-direction: column; box-sizing: border-box; border-radius: 28px; padding: 40px 52px 36px;
+  background: rgba(255, 255, 255, .6); border: 1px solid rgba(255, 255, 255, .9); box-shadow: 0 24px 60px rgba(16, 60, 35, .16), inset 0 1px 0 rgba(255, 255, 255, .95); }
+.c2-head { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.c2-logos { display: flex; align-items: center; gap: 14px; padding: 8px 16px; border-radius: 999px; background: rgba(255, 255, 255, .72); border: 1px solid rgba(255, 255, 255, .95); box-shadow: 0 6px 18px rgba(16, 60, 35, .1); }
+.c2-logos img { height: 44px; width: auto; max-width: 110px; object-fit: contain; }
+.c2-org { text-align: right; font-size: 11px; font-weight: 600; letter-spacing: .18em; line-height: 1.6; text-transform: uppercase; color: #3f5a4b; }
+.c2-mid { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 20px 0; }
+.c2-top { display: flex; gap: 48px; align-items: center; }
+.c2-who { flex: 1; min-width: 0; }
+.c2-title { font-size: 50px; font-weight: 800; letter-spacing: .02em; line-height: 1.05; color: var(--dark); text-transform: uppercase; }
+.c2-intro { font-size: 17px; color: #3f5a4b; margin-top: 22px; }
+.c2-name { font-size: 64px; font-weight: 800; line-height: 1.08; margin-top: 6px; }
+.c2-k { font-size: 20px; font-weight: 600; color: var(--red); margin-top: 8px; }
+.c2-medal-ring { flex: none; width: 156px; height: 156px; border-radius: 50%; box-sizing: border-box; border: 6px solid var(--tier); background: rgba(255, 255, 255, .7);
+  box-shadow: 0 12px 30px rgba(16, 60, 35, .16), inset 0 2px 0 rgba(255, 255, 255, .95); display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--tier-tx); }
+.c2-medal-ring b { font-size: 60px; font-weight: 800; line-height: 1; }
+.c2-medal-ring span { font-size: 13px; font-weight: 700; letter-spacing: .16em; margin-top: 4px; text-transform: uppercase; }
+.c2-tags { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.c2-chip { font-size: 16px; font-weight: 600; padding: 9px 20px; border-radius: 999px; color: var(--dark); background: rgba(255, 255, 255, .75); border: 1px solid color-mix(in srgb, var(--dark) 35%, transparent); }
+.c2-chip.c2-role { font-weight: 700; letter-spacing: .04em; text-transform: uppercase; border: 1.5px solid var(--brand); }
+.page.cert2.gold .c2-role, .page.cert2.silver .c2-role, .page.cert2.bronze .c2-role { color: var(--tier-tx); border-color: var(--tier); }
+.page.cert2.off .c2-role { color: var(--red); border-color: var(--accent); }
+.c2-body { font-size: 19px; line-height: 1.6; margin: 28px 0 0; max-width: 940px; color: #1d3328; }
+.c2-foot { display: flex; align-items: flex-end; gap: 28px; padding-top: 18px; border-top: 1px solid rgba(15, 81, 50, .15); }
+.c2-signs { flex: 1; }
+.c2-date { font-size: 12px; color: #3f5a4b; margin-bottom: 4px; }
+.c2-signrow { display: flex; gap: 48px; }
+.c2-signrow .sign { text-align: left; min-width: 0; font-size: 13px; }
+.c2-signrow .sign > div:first-child { color: #3f5a4b; }
+.c2-signrow .sign-space { height: 54px; }
+.c2-qr { flex: none; display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 10px; border-radius: 16px; background: rgba(255, 255, 255, .8); border: 1px solid rgba(255, 255, 255, .95); box-shadow: 0 6px 18px rgba(16, 60, 35, .1); }
+.c2-qr svg { width: 84px; height: 84px; display: block; background: #fff; }
+.c2-qr div { font-size: 11px; line-height: 1.5; color: #3f5a4b; }
+.c2-qr b { display: block; color: #10231a; }
+
+/* ---------- official, verifikasi ---------- */
+.off-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.off-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 4px 3px 9px; border-radius: 99px; background: var(--soft); border: 1px solid var(--line); font-size: .82rem; }
+.off-chip small { color: var(--muted); }
+.off-chip .x { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 3px; }
+.off-chip .x:hover { color: var(--red-tx); }
+.verify { max-width: 520px; margin: 30px auto; text-align: center; }
+.verify-ic { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 10px; display: grid; place-items: center; font-size: 2rem; font-weight: 800; color: #fff; background: var(--brand); }
+.verify.bad .verify-ic { background: var(--accent); }
+.verify dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; text-align: left; margin: 16px 0 0; }
+.verify dt { color: var(--muted); font-size: .85rem; }
+.verify dd { margin: 0; font-weight: 600; }
 
 @page { size: A4 landscape; margin: 0; }
 @media print {

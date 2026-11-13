@@ -27,6 +27,25 @@
       </tbody></table></div>`;
   };
 
+  // Tabel skor per gate Team Stroke: 4 baris pemain lalu baris jumlah tim.
+  App.teamGateTable = (ev, opts = {}) => {
+    const d = St.teamDetail(ev);
+    if (!d || !d.cols.length) return App.ui.empty('Nomor sumber (single stroke) belum diatur.');
+    if (!d.teams.length) return App.ui.empty('Belum ada tim.');
+    const rounds = [];
+    d.cols.forEach((c) => { const last = rounds[rounds.length - 1]; if (last && last.name === c.round) last.n++; else rounds.push({ name: c.round, n: 1 }); });
+    const cell = (v, i) => `<td class="c ${App.scoreCls(v)}${d.cols[i].g === 0 && i ? ' rs' : ''}">${v ?? ''}</td>`;
+    const body = d.teams.map(({ row, members, sums }) => {
+      const head = `<tr class="tg-team"><td class="c" rowspan="${members.length + 1}"><b>${row.played ? row.rank : '-'}</b></td>`;
+      return members.map((m, mi) => `${mi ? '<tr>' : head}<td class="nm${m.counted ? '' : ' muted'}">${mi ? '' : `<b>${esc(App.kName(row.entry.kontingenId))}</b><br>`}${esc(App.athName(m.athleteId))}${m.counted ? '' : ' <small>(tidak dihitung)</small>'}</td>
+        ${m.vals.map(cell).join('')}<td class="c tot">${m.played ? m.total : '-'}</td></tr>`).join('')
+        + `<tr class="tg-sum"><td class="nm">Jumlah tim</td>${sums.map((v, i) => `<td class="c${d.cols[i].g === 0 && i ? ' rs' : ''}">${v ?? ''}</td>`).join('')}<td class="c tot">${row.played ? row.total : '-'}</td></tr>`;
+    }).join('');
+    return `<div class="table-wrap"><table class="team-gates${opts.print ? ' pt' : ''}"><thead>
+      <tr><th rowspan="2">Pos</th><th rowspan="2">Tim / Pemain</th>${rounds.map((r, i) => `<th colspan="${r.n}" class="${i ? 'rs' : ''}">${esc(r.name)}</th>`).join('')}<th rowspan="2">Total</th></tr>
+      <tr>${d.cols.map((c, i) => `<th class="${c.g === 0 && i ? 'rs' : ''}">${c.g + 1}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>`;
+  };
+
   // Kelas warna skor per gate: 1 paling hijau, 5+ merah, supaya pukulan terkecil cepat terlihat.
   App.scoreCls = (v) => {
     const n = App.num(v);
@@ -69,7 +88,8 @@
       if (ev.kind === 'team') {
         const src = App.event(ev.config.sourceEvent);
         return html + `<div class="card"><h3>${esc(ev.name)}</h3><p class="muted">Dihitung otomatis dari skor ${esc(src ? src.name : '?')} (${ev.config.sourceRounds.map((i) => src?.config.rounds[i]?.name).join(' + ')}), ${ev.config.countBest} pemain terbaik. Anggota tim diatur di <a href="#/events/${ev.id}">Nomor & Entri</a>.</p>
-          <div id="rank-box">${App.strokeRankingTable(ev, { editable: true })}</div></div>`;
+          <div id="rank-box">${App.strokeRankingTable(ev, { editable: true })}</div></div>
+          <div class="card"><h3>Skor per gate</h3><p class="muted small">Skor tiap pemain di setiap gate, dan jumlah tim per gate dari pemain yang dihitung.</p>${App.teamGateTable(ev)}</div>`;
       }
       const ri = Math.min(+(params[1] || 0), ev.config.rounds.length - 1);
       const rc = ev.config.rounds[ri];
