@@ -47,6 +47,7 @@
     s.registration = App.reg.publicSettings(s.registration);
     s.registrations = s.registrations || [];
     s.announcements = s.announcements || [];
+    s.publicPages = Object.assign({ peserta: false }, s.publicPages || {});
     // OB tidak dipakai lagi: buang dari urutan tie-break.
     s.events.forEach((e) => { if (Array.isArray(e.config?.tiebreak)) e.config.tiebreak = e.config.tiebreak.filter((k) => k !== "ob"); });
     return s;

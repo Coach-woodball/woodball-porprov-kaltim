@@ -37,7 +37,12 @@
   App.views.peserta = {
     render() {
       const S = App.S;
+      const open = S.publicPages.peserta;
+      if (!open && !App.isAdmin()) return `<h2>${esc(S.menu.peserta || 'List Peserta')}</h2><div class="card">${App.ui.empty('Halaman ini belum dibuka untuk umum.')}</div>`;
       return `<h2>${esc(S.menu.peserta || 'List Peserta')}</h2>
+        ${App.isAdmin() ? `<div class="card ps-admin ${open ? 'on' : ''}"><div><b>${open ? 'Tampil untuk umum' : 'Disembunyikan dari umum'}</b>
+          <span class="muted small">${open ? 'Pengunjung tanpa login bisa membuka menu ini.' : 'Hanya admin yang melihat menu ini.'}</span></div>
+          <button class="btn ${open ? 'ghost' : ''}" id="ps-toggle">${open ? 'Sembunyikan dari umum' : 'Tampilkan untuk umum'}</button></div>` : ''}
         <div class="card ps-filter">
           <div class="ps-controls">
             <label>Cari nama<input id="ps-q" type="search" value="${esc(f.q)}" placeholder="Ketik nama atlet" autocomplete="off"></label>
@@ -51,7 +56,12 @@
         <div id="ps-list">${listHtml()}</div>`;
     },
     mount(root) {
+      root.querySelector('#ps-toggle')?.addEventListener('click', () => {
+        App.S.publicPages.peserta = !App.S.publicPages.peserta;
+        App.commit(App.S.publicPages.peserta ? 'List Peserta ditampilkan untuk umum' : 'List Peserta disembunyikan dari umum');
+      });
       const box = root.querySelector('#ps-list');
+      if (!box) return;
       const redraw = () => { box.innerHTML = listHtml(); };
       root.querySelector('#ps-q').addEventListener('input', (e) => { f.q = e.target.value; redraw(); });
       [['#ps-k', 'k'], ['#ps-ev', 'ev'], ['#ps-g', 'g'], ['#ps-sort', 'sort']].forEach(([sel, key]) =>

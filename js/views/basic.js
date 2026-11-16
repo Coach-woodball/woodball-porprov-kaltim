@@ -69,7 +69,7 @@
         ${quoteHtml('pre-quote')}
         <p class="cd-title">Menuju pertandingan</p>
         <div class="cd-grid" id="countdown">${unit('d', 'Hari')}${unit('h', 'Jam')}${unit('m', 'Menit')}${unit('s', 'Detik')}</div>
-        ${reg.open !== false ? '<a class="btn pre-cta" href="daftar.html">Daftarkan Atlet</a>' : `<a class="btn pre-cta" href="#/peserta">Lihat ${esc(S.menu.peserta || 'List Peserta')}</a>`}
+        ${reg.open !== false ? '<a class="btn pre-cta" href="daftar.html">Daftarkan Atlet</a>' : S.publicPages.peserta ? `<a class="btn pre-cta" href="#/peserta">Lihat ${esc(S.menu.peserta || 'List Peserta')}</a>` : ''}
       </section>
       ${annBoard()}`;
   }

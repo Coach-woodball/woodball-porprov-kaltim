@@ -45,6 +45,9 @@
         <div class="grid3">${field('event.certNumber', 'Format nomor sertifikat ({no} = nomor urut)', E.certNumber)}</div>
       </div>
 
+      <div class="card"><h3>Halaman umum</h3><p class="muted">Atur halaman yang bisa dilihat pengunjung tanpa login.</p>
+        <label class="chk"><input type="checkbox" data-setb="publicPages.peserta" ${App.S.publicPages.peserta ? 'checked' : ''}> Tampilkan menu ${esc(App.S.menu.peserta || 'List Peserta')} untuk umum</label></div>
+
       <div class="card"><h3>Label Menu</h3><div class="grid4">${Object.entries(App.S.menu).map(([k, v]) => field('menu.' + k, k, v)).join('')}</div></div>
 
       <div class="card"><h3>Validasi Peserta (peringatan)</h3><p class="muted">Default sesuai THB; bisa disesuaikan setelah Technical Meeting.</p>

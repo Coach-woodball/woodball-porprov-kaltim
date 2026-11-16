@@ -50,6 +50,7 @@
     // dipakai formulir pendaftaran online (tanpa kode akses)
     validation: S.validation,
     announcements: S.announcements,
+    publicPages: S.publicPages,
     registration: App.reg.publicSettings(S.registration),
     publishedAt: new Date().toISOString(),
   });

@@ -133,6 +133,7 @@
     registration: App.reg.defaults(),
     registrations: [],
     announcements: [],
+    publicPages: { peserta: false }, // halaman umum yang dibuka admin
     kontingen: App.defaultKontingen(),
     athletes: [],
     events: App.defaultEvents(),

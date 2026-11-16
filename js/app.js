@@ -56,7 +56,9 @@
     // 'public': hanya untuk pengunjung umum; daftar membuka formulir pendaftaran.
     // Menu Pendaftaran umum hanya tampil selama formulir dibuka.
     const regOpen = (App.S.registration || {}).open !== false;
-    const nav = NAV.filter(([key, adm]) => (key !== 'daftar' || regOpen) && (adm === 'public' ? !admin : admin || !adm)).map(([key]) =>
+    // List Peserta untuk umum hanya tampil kalau dibuka admin (admin selalu melihatnya).
+    const hidden = (key) => (key === 'daftar' && !regOpen) || (key === 'peserta' && !admin && !App.S.publicPages.peserta);
+    const nav = NAV.filter(([key, adm]) => !hidden(key) && (adm === 'public' ? !admin : admin || !adm)).map(([key]) =>
       `<a href="${key === 'daftar' ? 'daftar.html' : '#/' + key}" class="${routeName === key ? 'active' : ''}">${App.icon(key)}<span>${App.esc(App.S.menu[key] || key)}</span></a>`).join('');
     const th = App.theme();
     return `

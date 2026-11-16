@@ -734,3 +734,6 @@ table.team-gates td.tsub { color: var(--muted); }
 .page table.team-gates td.kab { white-space: normal; line-height: 1.2; }
 .page table.team-gates tr.tg-sum td.nm { font-style: italic; }
 .page table.team-gates small { font-size: 6.5pt; }
+.ps-admin { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; border: 1px dashed var(--line); }
+.ps-admin > div { display: grid; gap: 2px; }
+.ps-admin.on { border-style: solid; border-color: color-mix(in srgb, var(--brand) 45%, transparent); }
