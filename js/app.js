@@ -7,6 +7,7 @@
     dashboard: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
     kontingen: '<path d="M5 21V4m0 0h12l-2.5 4.5L17 13H5"/>',
     athletes: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.7 3 2.5 3.5 5.2"/>',
+    peserta: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M15 8h6M15 12h6M17 16h4"/>',
     announcements: '<path d="M4 10v4l3 .5 2 5.5h3l-1.6-5L20 18V6L7 9.5z"/>',
     daftar: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/>',
     registration: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14l2 2 4-4"/>',
@@ -34,7 +35,7 @@
   };
 
   const NAV = [
-    ['dashboard', false], ['daftar', 'public'], ['kontingen', true], ['athletes', true], ['registration', true], ['announcements', true], ['events', true], ['stroke', true], ['fairway', true],
+    ['dashboard', false], ['daftar', 'public'], ['peserta', false], ['kontingen', true], ['athletes', true], ['registration', true], ['announcements', true], ['events', true], ['stroke', true], ['fairway', true],
     ['results', false], ['print', false], ['display', true], ['settings', true], ['backup', true],
   ];
 
@@ -53,7 +54,9 @@
     const E = App.S.event;
     const admin = App.isAdmin();
     // 'public': hanya untuk pengunjung umum; daftar membuka formulir pendaftaran.
-    const nav = NAV.filter(([, adm]) => (adm === 'public' ? !admin : admin || !adm)).map(([key]) =>
+    // Menu Pendaftaran umum hanya tampil selama formulir dibuka.
+    const regOpen = (App.S.registration || {}).open !== false;
+    const nav = NAV.filter(([key, adm]) => (key !== 'daftar' || regOpen) && (adm === 'public' ? !admin : admin || !adm)).map(([key]) =>
       `<a href="${key === 'daftar' ? 'daftar.html' : '#/' + key}" class="${routeName === key ? 'active' : ''}">${App.icon(key)}<span>${App.esc(App.S.menu[key] || key)}</span></a>`).join('');
     const th = App.theme();
     return `
@@ -84,6 +87,7 @@
     const root = document.getElementById('app');
     document.documentElement.style.setProperty('--brand', App.S.event.themeColor || '#16a34a');
     document.documentElement.style.setProperty('--accent', App.S.event.accentColor || '#dc2626');
+    document.documentElement.classList.toggle('score-neutral', App.scoreMode() === 'neutral');
     if (view.admin && !App.isAdmin()) {
       root.innerHTML = layout(`<div class="card"><h2>Butuh mode admin</h2><p>Halaman ini hanya untuk admin.</p><button class="btn" data-act="login">Masuk Admin</button></div>`, name);
       return;
@@ -156,6 +160,12 @@
       App.toast(THEME_LABEL[next]);
     }
     else if (act === 'login') App.login();
+    else if (act === 'scoremode') {
+      const next = App.scoreMode() === 'neutral' ? 'color' : 'neutral';
+      try { localStorage.setItem('wb-scoremode', next); } catch (err) { /* abaikan */ }
+      App.rerender();
+      App.toast(next === 'neutral' ? 'Angka gate: netral' : 'Angka gate: berwarna');
+    }
     else if (act === 'sim-end') {
       App.ask('Akhiri simulasi? Semua perubahan selama simulasi dibuang dan data kembali seperti sebelum simulasi.', 'Akhiri simulasi').then(async (ok) => {
         if (!ok) return;

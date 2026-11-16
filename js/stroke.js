@@ -35,6 +35,30 @@
     return { sum, played, gates: list, ob: +sc.ob || 0 };
   };
 
+  // Jumlah gate dengan skor 1, 2, 3, 4, dan 5+ (urutan indeks 0..4).
+  St.counts = (vals) => {
+    const c = [0, 0, 0, 0, 0];
+    vals.forEach((v) => { if (v > 0) c[Math.min(v, 5) - 1]++; });
+    return c;
+  };
+
+  // Ronde penyisihan: semua ronde sebelum ronde ber-cut pertama (tanpa cut: semua ronde).
+  St.prelimRounds = (ev) => {
+    const rcs = ev.config.rounds || [];
+    const cut = rcs.findIndex((rc) => rc.cut);
+    return rcs.map((_, i) => i).slice(0, cut < 0 ? rcs.length : cut);
+  };
+
+  // Peringkat baru ditampilkan setelah semua peserta menyelesaikan seluruh gate ronde penyisihan.
+  St.prelimDone = (ev) => {
+    const pre = St.prelimRounds(ev);
+    if (!pre.length) return true;
+    return pre.every((ri) => {
+      const ids = St.participants(ev, ri);
+      return ids.length > 0 && ids.every((id) => St.sumScore(St.score(ev, ri, id), ev.config.rounds[ri].gates).played >= ev.config.rounds[ri].gates);
+    });
+  };
+
   St.inGroups = (ev, ri) => new Set(St.data(ev).rounds[ri].groups.flatMap((g) => g.entryIds));
 
   St.participants = (ev, ri) => {
@@ -105,6 +129,7 @@
     const rcs = ev.config.rounds;
     const upto = uptoRound ?? rcs.length;
     const groupSets = d.rounds.map((r) => new Set(r.groups.flatMap((g) => g.entryIds)));
+    const pre = St.prelimRounds(ev);
     const rows = App.entriesOf(ev.id).map((entry) => {
       const rounds = [];
       let total = 0, played = 0, ob = 0, reached = 0;
@@ -119,7 +144,8 @@
         if (rcs[ri].cut && !groupSets[ri].has(entry.id) && rounds[ri].played === 0) reached = Math.min(reached, ri - 1);
       }
       const expected = rcs.slice(0, reached + 1).reduce((s, r) => s + r.gates, 0);
-      return { entry, rounds, total, played, ob, reached, complete: played >= expected && played > 0 };
+      const counts = St.counts(rounds.filter((_, i) => pre.includes(i)).flatMap((x) => x.gates));
+      return { entry, rounds, total, played, ob, reached, counts, complete: played >= expected && played > 0 };
     });
     // Peserta yang lolos ke ronde cut selalu di atas yang tidak lolos; yang belum main paling bawah.
     const primary = (a, b) => (b.played > 0) - (a.played > 0) || b.reached - a.reached || a.total - b.total;
@@ -150,6 +176,7 @@
         entry, members, total, played, reached: 0,
         ob: counted.reduce((s, m) => s + m.ob, 0),
         best: counted.length ? counted[0].total : null,
+        counts: St.counts(counted.flatMap((m) => m.gates)),
         rounds: [{ gates: counted.flatMap((m) => m.gates) }],
         complete: counted.length >= Math.min(ev.config.countBest, members.length) && played > 0,
       };
@@ -203,6 +230,11 @@
 
   St.generateGroups = (ev, ri, mode) => {
     const d = St.data(ev);
+    if (mode === 'copy') {
+      // Sama dengan ronde sebelumnya: orang, nomor pairing, lapangan, dan jam yang sama.
+      d.rounds[ri].groups = d.rounds[ri - 1].groups.map((g) => ({ ...g, id: App.uid('g_'), entryIds: g.entryIds.slice() }));
+      return;
+    }
     d.rounds[ri].groups = [];
     let ids = St.participants(ev, ri);
     if (mode === 'random') ids = St.spreadOrder(ids);

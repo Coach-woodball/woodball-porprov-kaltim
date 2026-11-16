@@ -650,14 +650,6 @@ tr.dim td { opacity: .5; }
 .cd-unit b { font-size: clamp(1.7rem, 5vw, 2.7rem); line-height: 1; font-variant-numeric: tabular-nums; }
 .cd-unit span { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; opacity: .85; }
 .pre-cta { margin-top: 22px; background: #fff; color: #0b1f16; padding: 11px 26px; box-shadow: 0 8px 22px rgba(0, 0, 0, .25); }
-.pre-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--gap); align-items: start; }
-.pre-side .card { margin-bottom: var(--gap); }
-.pre-side h3 { margin: 0 0 10px; }
-.pre-side p { margin: 0 0 6px; }
-.info-big { font-size: 1.15rem; font-weight: 700; }
-.pre-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
-.pre-stats b { display: block; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
-.pre-stats span { font-size: .76rem; color: var(--muted); }
 .an-board h2 { margin: 0 0 12px; }
 .an-post { padding: 12px 0 12px 14px; border-left: 3px solid var(--line); }
 .an-post + .an-post { margin-top: 6px; }
@@ -667,5 +659,78 @@ tr.dim td { opacity: .5; }
 .an-post p { margin: 0; font-size: .92rem; }
 .an-item { display: flex; gap: 14px; justify-content: space-between; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .an-item p { margin: 4px 0 0; font-size: .92rem; }
-@media (max-width: 860px) { .pre-grid { grid-template-columns: minmax(0, 1fr); } .pre-hero { padding: 26px 16px; border-radius: 20px; } .pre-hero .hero-logos .logo { height: 56px; } .cd-unit { padding: 10px 2px 8px; } }
+@media (max-width: 860px) { .pre-hero { padding: 26px 16px; border-radius: 20px; } .pre-hero .hero-logos .logo { height: 56px; } .cd-unit { padding: 10px 2px 8px; } }
 @media (max-width: 520px) { .topbar .brand > div { display: none; } }
+
+/* ---------- angka kumulatif & mode netral ---------- */
+th.cnt, td.cnt { width: 30px; text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; }
+th.cnt-first, td.cnt-first { border-left: 2px solid var(--line); }
+th.prev, td.prev { color: var(--muted); white-space: nowrap; }
+td.prev.big { color: var(--text); }
+.score-neutral input.sc { font-weight: 400; }
+.score-neutral input.sc.sv1, .score-neutral input.sc.sv2, .score-neutral input.sc.sv4, .score-neutral input.sc.sv5,
+.score-neutral table.team-gates td.sv1, .score-neutral table.team-gates td.sv2, .score-neutral table.team-gates td.sv4, .score-neutral table.team-gates td.sv5 { background: var(--input); color: var(--text); border-color: var(--line); font-weight: inherit; }
+.score-neutral table.team-gates td.sv1, .score-neutral table.team-gates td.sv2, .score-neutral table.team-gates td.sv4, .score-neutral table.team-gates td.sv5 { background: none; }
+.score-neutral .sv-legend i { display: none; }
+.score-neutral .sv-legend span::after { content: " netral"; }
+.sv-legend .btn { margin-left: 6px; }
+/* cetak hitam putih: tabel putih, tulisan hitam tanpa tebal, hanya logo yang berwarna;
+   baris berselang krem tipis, garis tebal di awal setiap pairing */
+.print-area.bw .page, .print-area.bw .page * { color: #000 !important; box-shadow: none !important; text-shadow: none !important; }
+.print-area.bw .page th, .print-area.bw .page td { background: #fff !important; font-weight: 400 !important; }
+.print-area.bw .page th { font-weight: 700 !important; border-color: #000 !important; }
+.print-area.bw .page td { border-color: #555 !important; }
+.print-area.bw .page table tbody tr:nth-child(even) td { background: #f7f5ef !important; }
+.print-area.bw .page table tbody td[rowspan] { background: #fff !important; }
+.print-area.bw .page table.sheet-table tr.pstart td, .print-area.bw .page table.team-gates tr.tg-team td, .print-area.bw .page table.team-sum tr.ts-first td { border-top: .8mm solid #000 !important; }
+.print-area.bw .page .sv-legend { display: none; }
+.print-area.bw .page b, .print-area.bw .page .sv { font-weight: 400 !important; }
+.print-area.bw .print-bracket .bline, .print-area.bw .print-bracket .bline.won { stroke: #000 !important; }
+.print-area.bw .print-bracket .arrow-head { fill: #000 !important; }
+.print-area.bw .print-bracket .bm, .print-area.bw .print-bracket .bm-row { background: #fff !important; border-color: #000 !important; }
+.print-area.bw .page.cert2 { background: #fff !important; }
+.print-area.bw .page.cert2 .c2-card { background: #fff !important; border: .3mm solid #000 !important; }
+.print-area.bw .page.cert2 .c2-logos, .print-area.bw .page.cert2 .c2-qr { background: #fff !important; border: .3mm solid #000 !important; }
+.print-area.bw .page.cert2 .c2-medal-ring, .print-area.bw .page.cert2 .c2-chip { background: #fff !important; border-color: #000 !important; }
+.print-area.bw .page.cert2 .c2-foot { border-top-color: #000 !important; }
+.page th.cnt, .page td.cnt { color: #000; width: 7mm; }
+.page table.team-sum tr.ts-first td { border-top: .5mm solid #000; }
+.print-area.bw .page table.sheet-table tbody td.tot, .print-area.bw .page table.team-gates tbody td.tot { background: #fff !important; font-weight: 400 !important; }
+.print-area.bw .page table.sheet-table tbody td.pno, .print-area.bw .page table.team-gates tr.tg-sum td { background: #fff !important; font-weight: 400 !important; }
+.print-area.bw .page table.sheet-table tbody tr:nth-child(even) td.tot, .print-area.bw .page table.team-gates tbody tr:nth-child(even) td.tot { background: #f7f5ef !important; }
+table.team-gates td.kab { font-weight: 700; min-width: 120px; vertical-align: middle; }
+table.team-gates td.nm { min-width: 130px; }
+table.team-gates td.tsub { color: var(--muted); }
+.page table.team-gates td.kab { width: 30mm; font-weight: 700; }
+.page table.team-gates td.nm { width: 32mm; white-space: nowrap; }
+.page table.team-gates td.tsub { color: #000; }
+
+/* ---------- List Peserta ---------- */
+.ps-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 14px; }
+.ps-filter { position: sticky; top: calc(var(--top-h) + 16px); z-index: 5; }
+.ps-sum { margin: 0 0 10px 4px; }
+.ps-k h3 { margin: 0 0 8px; }
+.ps-k { scroll-margin-top: 220px; }
+@media (max-width: 900px) { .ps-filter { position: static; } }
+
+/* ---------- kata penyemangat harian ---------- */
+.pre-quote { margin: 22px auto 0; max-width: 680px; }
+.pre-quote blockquote { margin: 0; font-size: clamp(1.02rem, 2.2vw, 1.22rem); font-style: italic; line-height: 1.5; }
+.pre-quote blockquote::before { content: "\201C"; } .pre-quote blockquote::after { content: "\201D"; }
+.pre-quote figcaption { margin-top: 6px; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; opacity: .8; }
+.day-quote { margin: 0 0 var(--gap); padding: 18px 22px; border-left: 0; }
+.day-quote blockquote { margin: 0; font-size: 1.08rem; font-style: italic; }
+.day-quote blockquote::before { content: "\201C"; } .day-quote blockquote::after { content: "\201D"; }
+.day-quote figcaption { margin-top: 6px; font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+
+/* ---------- rekap gabungan ronde & skor per gate tim (cetak) ---------- */
+.page table.combo-table th { font-size: calc(var(--fs) * .92) !important; height: 5mm; padding: 0 1px; }
+.page table.combo-table td { padding: 0 1px; }
+.page table.combo-table td.nm { padding-left: 3px; }
+.page table.combo-table .rs, .page table.team-gates .rs { border-left: .45mm solid #000 !important; }
+.page table.combo-table tr.cutline td { border-top: .8mm solid #000 !important; }
+.page.sheet.combo .note { margin: 2mm 0 0; }
+.page table.team-gates th, .page table.team-gates td { height: 4.6mm; vertical-align: middle; }
+.page table.team-gates td.kab { white-space: normal; line-height: 1.2; }
+.page table.team-gates tr.tg-sum td.nm { font-style: italic; }
+.page table.team-gates small { font-size: 6.5pt; }

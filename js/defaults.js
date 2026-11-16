@@ -118,7 +118,7 @@
       accentColor: '#dc2626',
     },
     menu: {
-      dashboard: 'Beranda', athletes: 'Atlet', registration: 'Pendaftaran', daftar: 'Pendaftaran', announcements: 'Pengumuman', kontingen: 'Kontingen', events: 'Nomor & Entri',
+      dashboard: 'Beranda', athletes: 'Atlet', registration: 'Pendaftaran', daftar: 'Pendaftaran', peserta: 'List Peserta', announcements: 'Pengumuman', kontingen: 'Kontingen', events: 'Nomor & Entri',
       stroke: 'Stroke', fairway: 'Fairway', results: 'Hasil & Medali', print: 'Cetak PDF',
       display: 'Layar Proyektor', settings: 'Pengaturan', backup: 'Backup Data',
     },

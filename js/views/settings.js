@@ -141,9 +141,17 @@
         try {
           const obj = JSON.parse(await App.readFile(file, 'text'));
           if (obj.app !== 'woodball' || !obj.state) throw new Error('Bukan file backup aplikasi ini');
-          if (!(await App.ask('Ganti semua data saat ini dengan isi backup?'))) return;
-          await App.db.clear('files');
-          App.files.cache.clear();
+          const msg = App.sim
+            ? 'Muat isi berkas ini ke dalam simulasi? Data asli kembali saat simulasi diakhiri, dan tidak ada yang dikirim ke server.'
+            : App.cloud.admin
+              ? 'Ganti semua data dengan isi backup? Data di SERVER juga akan diganti, termasuk yang dilihat publik. Untuk mencoba data uji, pakai Mode simulasi dulu.'
+              : 'Ganti semua data saat ini dengan isi backup?';
+          if (!(await App.ask(msg, App.sim ? 'Muat ke simulasi' : 'Ya, ganti semua'))) return;
+          // Saat simulasi, file lama (logo, scan) tetap disimpan agar bisa dikembalikan.
+          if (!App.sim) {
+            await App.db.clear('files');
+            App.files.cache.clear();
+          }
           for (const [id, f] of Object.entries(obj.files || {})) { App.files.cache.set(id, f); await App.db.put('files', id, f); }
           App.S = App.migrate(obj.state);
           await App.save(true);

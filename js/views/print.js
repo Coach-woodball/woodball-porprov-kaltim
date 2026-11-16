@@ -2,7 +2,9 @@
 // Cetak lewat dialog browser -> pilih "Simpan sebagai PDF" atau printer.
 (function (App) {
   const esc = App.esc, St = App.stroke, Fw = App.fairway;
-  const opts = { filled: true, date: '', certType: 'juara', layout: 'sheet' };
+  const opts = { filled: true, date: '', certType: 'juara', layout: 'sheet', bw: null };
+  // Hitam putih mengikuti mode angka gate di layar sampai dipilih sendiri di halaman cetak.
+  const printBw = () => (opts.bw ?? App.scoreMode() === 'neutral');
 
   const DOCS = {
     'scorecard-stroke': 'Score Card Stroke',
@@ -107,6 +109,79 @@
     }).join('');
   }
 
+  // ---------- Rekap gabungan beberapa ronde (R1 + R2, atau R1 + R2 + Final) ----------
+  // Satu baris per peserta: skor per gate tiap ronde, total tiap ronde, jumlah, dan angka kumulatif penyisihan.
+  // Diurutkan menurut peringkat setelah penyisihan selesai; garis tebal menandai batas lolos ke ronde ber-cut.
+  function strokeCombined(ev, ris) {
+    const E = App.S.event;
+    const rcs = ris.map((i) => ev.config.rounds[i]);
+    const done = St.prelimDone(ev);
+    const pre = St.prelimRounds(ev);
+    const cutRc = ev.config.rounds.find((rc) => rc.cut);
+    let rows = St.ranking(ev).filter((r) => r.played > 0 || St.inGroups(ev, 0).has(r.entry.id));
+    if (!done) {
+      const order = St.data(ev).rounds[0].groups.flatMap((g) => g.entryIds);
+      const pos = (r) => { const i = order.indexOf(r.entry.id); return i < 0 ? 1e6 : i; };
+      rows = rows.slice().sort((a, b) => pos(a) - pos(b));
+    }
+    const nGates = rcs.reduce((s, rc) => s + rc.gates, 0);
+    // lebar isi ±273mm: Pos 8, Nama 34, Kab 16, total (ronde + jumlah) 8mm/kolom, angka kumulatif 5.5mm/kolom
+    const fixed = 8 + 34 + 16 + (rcs.length + 1) * 8 + 5 * 5.5;
+    const gateW = Math.max(3.6, Math.min(8, (273 - fixed) / nGates));
+    const MAX_ROWS = 36;
+    const chunks = [];
+    for (let i = 0; i < rows.length; i += MAX_ROWS) chunks.push(rows.slice(i, i + MAX_ROWS));
+    if (!chunks.length) chunks.push([]);
+    const label = rcs.map((rc) => rc.name).join(' + ');
+    const short = (n) => n.replace(/^Penyisihan\s*/i, '');
+    return chunks.map((list, pi) => {
+      const rowH = Math.max(3, Math.min(7.5, 112 / Math.max(list.length, 1)));
+      const font = Math.max(6, Math.min(9.5, rowH * 1.7, gateW * 1.9));
+      const body = list.map((r, idx) => {
+        const n = pi * MAX_ROWS + idx;
+        const cut = done && cutRc && n === cutRc.cut ? ' cutline' : '';
+        const gates = ris.map((ri, k) => {
+          const g = St.score(ev, ri, r.entry.id).g;
+          return Array.from({ length: rcs[k].gates }, (_, gi) => {
+            const v = g[gi];
+            const has = v !== null && v !== undefined && v !== '';
+            return `<td class="c${gi === 0 ? ' rs' : ''} ${has ? App.scoreCls(v) : ''}">${has ? v : ''}</td>`;
+          }).join('');
+        }).join('');
+        const sums = ris.map((ri, k) => { const s = r.rounds[ri]; return `<td class="c${k ? '' : ' rs'}">${s && s.played ? s.sum : '-'}</td>`; }).join('');
+        const tot = ris.reduce((s, ri) => s + (r.rounds[ri] ? r.rounds[ri].sum : 0), 0);
+        return `<tr class="${cut.trim()}"><td class="c">${done && r.played ? r.rank : '-'}</td><td class="nm">${esc(App.entryName(r.entry))}</td><td>${esc(App.kShort(r.entry.kontingenId))}</td>
+          ${gates}${sums}<td class="c tot">${r.played ? tot : '-'}</td>${App.countCells(r.counts)}</tr>`;
+      }).join('');
+      return `<section class="page sheet combo" style="--rowh:${rowH.toFixed(2)}mm;--fs:${font.toFixed(1)}pt">${kop('STROKE COMPETITION · REKAP SKOR')}
+        <div class="info"><span>Kategori: <b>${esc(ev.name)}</b></span><span>Ronde: <b>${esc(label)}</b></span><span>Peserta: <b>${rows.length}</b></span>
+          <span>Tempat: <b>${esc(E.venue)}</b></span>${chunks.length > 1 ? `<span>Halaman <b>${pi + 1}/${chunks.length}</b></span>` : ''}
+          <span>${done ? 'Urut menurut peringkat' : 'Penyisihan belum selesai: urut menurut pairing'}</span></div>
+        <table class="pt sheet-table combo-table"><colgroup><col style="width:8mm"><col style="width:34mm"><col style="width:16mm">${Array.from({ length: nGates }, () => `<col style="width:${gateW.toFixed(2)}mm">`).join('')}${rcs.map(() => '<col style="width:8mm">').join('')}<col style="width:8mm">${Array.from({ length: 5 }, () => '<col style="width:5.5mm">').join('')}</colgroup>
+          <thead>
+            <tr><th rowspan="2">Pos</th><th rowspan="2">Nama</th><th rowspan="2">Kab</th>${rcs.map((rc) => `<th class="rs" colspan="${rc.gates}">${esc(rc.name)}</th>`).join('')}<th class="rs" colspan="${rcs.length + 1}">Total</th><th class="rs" colspan="5">Kumulatif ${esc(pre.map((i) => short(ev.config.rounds[i].name)).join('+'))}</th></tr>
+            <tr>${rcs.map((rc) => Array.from({ length: rc.gates }, (_, gi) => `<th class="${gi === 0 ? 'rs' : ''}">${gi + 1}</th>`).join('')).join('')}${rcs.map((rc, k) => `<th class="${k ? '' : 'rs'}">${esc(short(rc.name))}</th>`).join('')}<th>Jml</th>${['1', '2', '3', '4', '5+'].map((l, i) => `<th class="${i ? '' : 'rs'}">${l}</th>`).join('')}</tr>
+          </thead><tbody>${body}</tbody></table>
+        <p class="note">${cutRc && done ? `Garis tebal: batas ${cutRc.cut} besar yang lolos ke ${esc(cutRc.name)}. ` : ''}Kumulatif: berapa kali skor 1, 2, 3, 4, dan 5+ muncul di ronde penyisihan.</p>
+        <div class="signs end">${signBox(E.resultSigner.title, E.resultSigner.name, true)}</div>
+      </section>`;
+    }).join('');
+  }
+
+  // ---------- Skor per gate Team Stroke (halaman sendiri, juga di Hasil Resmi) ----------
+  function teamGatesPage(ev) {
+    const E = App.S.event;
+    const src = App.event(ev.config.sourceEvent);
+    const sr = (ev.config.sourceRounds || []).map((i) => src && src.config.rounds[i]).filter(Boolean);
+    return `<section class="page flow">${kop('SKOR PER GATE', esc(ev.name))}
+      <div class="info"><span>Sumber: <b>${esc(src ? src.name : '-')}</b></span><span>Ronde: <b>${esc(sr.map((r) => r.name).join(' + '))}</b></span>
+        <span>Dihitung: <b>${ev.config.countBest} pemain terbaik per tim</b></span><span>Tempat: <b>${esc(E.venue)}</b></span></div>
+      ${App.teamGateTable(ev, { print: true })}
+      <p class="note">Jumlah tim per gate hanya dari pemain yang dihitung. Total tim = jumlah ${esc(sr.map((r) => r.name.replace(/^Penyisihan\s*/i, '')).join(' + '))} pemain yang dihitung.</p>
+      <div class="signs end">${signBox(E.resultSigner.title, E.resultSigner.name, true)}</div>
+    </section>`;
+  }
+
   // ---------- Score card fairway ----------
   function fairwayCard(ev, m, gi) {
     const r = Fw.matchResult(ev, m);
@@ -155,13 +230,30 @@
     if (ev.discipline === 'stroke') {
       const rows = St.ranking(ev).filter((r) => r.played > 0);
       if (ev.kind === 'team') {
-        body = `<table class="pt"><thead><tr><th>Pos</th><th>Kab/Kota</th><th>Anggota Tim (skor)</th><th>Total</th><th>Ket.</th></tr></thead><tbody>
-          ${rows.map((r) => `<tr><td class="c">${r.rank}</td><td>${esc(App.kName(r.entry.kontingenId))}</td><td>${r.members.map((m) => `${esc(App.athName(m.athleteId))} (${m.played ? m.total : '-'})`).join(', ')}</td><td class="c"><b>${r.total}</b></td><td>${medalOf(r.rank)}</td></tr>`).join('')}</tbody></table>`;
+        // Ringkas per pemain: total tiap ronde sumber, jumlah pemain, lalu total tim.
+        const src = App.event(ev.config.sourceEvent);
+        const sr = (ev.config.sourceRounds || []).filter((i) => src && src.config.rounds[i]);
+        const detail = St.teamDetail(ev);
+        const countedOf = Object.fromEntries((detail ? detail.teams : []).map((t) => [t.row.entry.id, new Set(t.members.filter((m) => m.counted).map((m) => m.athleteId))]));
+        body = `<table class="pt team-sum"><thead><tr><th>Pos</th><th>Kab/Kota</th><th>Pemain</th>${sr.map((i) => `<th>${esc(src.config.rounds[i].name)}</th>`).join('')}<th>Jumlah</th><th>Total tim</th><th>Ket.</th></tr></thead><tbody>
+          ${rows.map((r) => {
+            const ms = r.members;
+            const counted = countedOf[r.entry.id] || new Set();
+            return ms.map((m, mi) => {
+              const per = sr.map((i) => (src ? St.memberScore(src, m.athleteId, [i]) : { played: 0, total: 0 }));
+              const first = mi === 0;
+              return `<tr class="${first ? 'ts-first' : ''}">${first ? `<td class="c" rowspan="${ms.length}"><b>${r.rank}</b></td><td rowspan="${ms.length}">${esc(App.kName(r.entry.kontingenId))}</td>` : ''}
+                <td>${esc(App.athName(m.athleteId))}${counted.has(m.athleteId) ? '' : ' <small>(tidak dihitung)</small>'}</td>
+                ${per.map((x) => `<td class="c">${x.played ? x.total : '-'}</td>`).join('')}<td class="c">${m.played ? m.total : '-'}</td>
+                ${first ? `<td class="c" rowspan="${ms.length}"><b>${r.total}</b></td><td rowspan="${ms.length}">${medalOf(r.rank)}</td>` : ''}</tr>`;
+            }).join('');
+          }).join('')}</tbody></table>`;
       } else {
         const rcs = ev.config.rounds;
-        body = `<table class="pt"><thead><tr><th>Pos</th><th>Nama</th><th>Kab/Kota</th>${rcs.map((r) => `<th>${esc(r.name)}</th>`).join('')}<th>Total</th><th>Ket.</th></tr></thead><tbody>
-          ${rows.map((r) => `<tr><td class="c">${r.rank}</td><td>${esc(App.entryName(r.entry))}</td><td>${esc(App.kName(r.entry.kontingenId))}</td>${r.rounds.map((x) => `<td class="c">${x.played ? x.sum : '-'}</td>`).join('')}<td class="c"><b>${r.total}</b></td><td>${medalOf(r.rank)}</td></tr>`).join('')}</tbody></table>
-          <p class="note">Penentuan jika jumlah pukulan sama: ${(ev.config.tiebreak || []).map((k) => esc(St.TIEBREAKS[k])).join(' → ')}.</p>`;
+        const preLabel = St.prelimRounds(ev).map((i) => rcs[i].name).join(' + ');
+        body = `<table class="pt"><thead><tr><th>Pos</th><th>Nama</th><th>Kab/Kota</th>${rcs.map((r) => `<th>${esc(r.name)}</th>`).join('')}<th>Total</th>${App.countHeads()}<th>Ket.</th></tr></thead><tbody>
+          ${rows.map((r) => `<tr><td class="c">${r.rank}</td><td>${esc(App.entryName(r.entry))}</td><td>${esc(App.kName(r.entry.kontingenId))}</td>${r.rounds.map((x) => `<td class="c">${x.played ? x.sum : '-'}</td>`).join('')}<td class="c"><b>${r.total}</b></td>${App.countCells(r.counts)}<td>${medalOf(r.rank)}</td></tr>`).join('')}</tbody></table>
+          <p class="note">Kolom 1 sampai 5+: berapa kali skor itu muncul di ${esc(preLabel)}. Penentuan jika jumlah pukulan sama: ${(ev.config.tiebreak || []).map((k) => esc(St.TIEBREAKS[k])).join(' → ')}.</p>`;
       }
     } else {
       const pl = Fw.placements(ev).list;
@@ -174,7 +266,7 @@
     }
     // Team Stroke: halaman tambahan berisi skor tiap pemain per gate dan jumlah tim.
     const teamGates = ev.discipline === 'stroke' && ev.kind === 'team'
-      ? `<section class="page flow">${kop('SKOR PER GATE', esc(ev.name))}${App.teamGateTable(ev, { print: true })}</section>` : '';
+      ? teamGatesPage(ev) : '';
     return `<section class="page flow">${kop('HASIL RESMI', `${esc(ev.name)}`)}${body}
       <div class="signs end">${signBox(signer.title, signer.name, true)}</div></section>${teamGates}`;
   }
@@ -317,7 +409,11 @@
     if (doc === 'certificates') return certPages(ev);
     if (!ev) return '<p class="c">Pilih nomor.</p>';
     if (doc === 'scorecard-stroke') {
-      if (ev.kind === 'team' || ev.discipline !== 'stroke') return '<p class="c">Pilih nomor stroke single/double.</p>';
+      if (ev.discipline !== 'stroke') return '<p class="c">Pilih nomor stroke.</p>';
+      if (ev.kind === 'team') return teamGatesPage(ev);
+      // 'p' = semua ronde penyisihan (R1 + R2), 'a' = semua ronde (R1 + R2 + Final)
+      if (params[1] === 'p') return strokeCombined(ev, St.prelimRounds(ev));
+      if (params[1] === 'a') return strokeCombined(ev, ev.config.rounds.map((_, i) => i));
       const ri = +(params[1] || 0);
       const r = St.data(ev).rounds[ri];
       if (!r) return '';
@@ -344,17 +440,26 @@
       const p = params.slice(1);
       const ev = App.event(p[0]);
       const needEv = !['medals', 'athletes'].includes(doc);
-      const evList = App.S.events.filter((e) => (doc === 'scorecard-stroke' ? e.discipline === 'stroke' && e.kind !== 'team' : doc === 'scorecard-fairway' || doc === 'bracket' ? e.discipline === 'fairway' : true));
+      const evList = App.S.events.filter((e) => (doc === 'scorecard-stroke' ? e.discipline === 'stroke' : doc === 'scorecard-fairway' || doc === 'bracket' ? e.discipline === 'fairway' : true));
       let extra = '';
-      if (doc === 'scorecard-stroke' && ev && ev.kind !== 'team') {
-        extra = `<select id="pr-round">${App.ui.options(ev.config.rounds.map((r, i) => [i, r.name]), p[1] || 0)}</select>`;
-        if (!p[2]) extra += `<select id="pr-layout">${App.ui.options([['sheet', 'Rekap 1 halaman'], ['cards', 'Kartu per pairing']], opts.layout)}</select>`;
+      if (doc === 'scorecard-stroke' && ev && ev.kind === 'team') {
+        const src = App.event(ev.config.sourceEvent);
+        extra = `<select id="pr-round" disabled>${App.ui.options([['', (ev.config.sourceRounds || []).map((i) => src?.config.rounds[i]?.name).filter(Boolean).join(' + ')]], '')}</select>`;
+      } else if (doc === 'scorecard-stroke' && ev) {
+        const rcs = ev.config.rounds;
+        const pre = St.prelimRounds(ev);
+        const combos = [];
+        if (pre.length > 1) combos.push(['p', pre.map((i) => rcs[i].name).join(' + ')]);
+        if (rcs.length > pre.length) combos.push(['a', rcs.map((r) => r.name).join(' + ')]);
+        extra = `<select id="pr-round">${App.ui.options([...rcs.map((r, i) => [i, r.name]), ...combos], p[1] || 0)}</select>`;
+        if (!p[2] && !['p', 'a'].includes(p[1])) extra += `<select id="pr-layout">${App.ui.options([['sheet', 'Rekap 1 halaman'], ['cards', 'Kartu per pairing']], opts.layout)}</select>`;
       }
       return `<div class="print-toolbar no-print card">
           <div class="row gap wrap">
             <select id="pr-doc">${App.ui.options(docs, doc)}</select>
             ${needEv ? `<select id="pr-ev">${doc === 'certificates' ? '<option value="">Semua nomor</option>' : ''}${App.ui.options(evList.map((e) => [e.id, e.name]), ev ? ev.id : '')}</select>` : ''}
             ${extra}
+            <select id="pr-color" title="Warna cetakan">${App.ui.options([['color', 'Warna'], ['bw', 'Hitam putih']], printBw() ? 'bw' : 'color')}</select>
             ${doc.startsWith('scorecard') ? `<label class="chk"><input type="checkbox" id="pr-filled" ${opts.filled ? 'checked' : ''}> Isi skor</label>` : ''}
             ${doc === 'certificates' ? `<select id="pr-ctype">${App.ui.options([['juara', 'Juara (1-3)'], ['peserta', 'Peserta'], ['official', 'Official & pelatih'], ['semua', 'Semua']], opts.certType)}</select>` : ''}
             ${['result', 'medals', 'certificates'].includes(doc) ? `<label class="mini">Tanggal tanda tangan<input type="date" id="pr-date" value="${opts.date || App.today()}"></label>` : ''}
@@ -364,7 +469,7 @@
           <p class="muted small">Di dialog cetak pilih <b>Simpan sebagai PDF</b> atau printer, ukuran ${doc === 'certificates' ? '<b>F4 / Folio (330 × 215 mm)</b>' : '<b>A4</b>'}, orientasi <b>Lanskap</b>, margin <b>Default/Tidak ada</b>, dan centang <b>Grafis latar belakang</b>.</p>
         </div>
         ${doc === 'certificates' ? `<p class="muted small no-print">Kode QR di sertifikat membuka halaman verifikasi. Cetak dari alamat online (Vercel) agar kode QR bisa dipindai dari HP mana saja.</p>` : ''}
-        <div class="print-area">${needEv && !ev && doc !== 'certificates' ? '<p class="c no-print">Pilih nomor terlebih dahulu.</p>' : buildPages(doc, p)}</div>`;
+        <div class="print-area${printBw() ? ' bw' : ''}">${needEv && !ev && doc !== 'certificates' ? '<p class="c no-print">Pilih nomor terlebih dahulu.</p>' : buildPages(doc, p)}</div>`;
     },
     mount(root, params) {
       const doc = DOCS[params[0]] ? params[0] : 'result';
@@ -374,6 +479,7 @@
       root.querySelector('#pr-round')?.addEventListener('change', (e) => go(doc, params[1], e.target.value));
       root.querySelector('#pr-layout')?.addEventListener('change', (e) => { opts.layout = e.target.value; App.rerender(); });
       root.querySelector('#pr-filled')?.addEventListener('change', (e) => { opts.filled = e.target.checked; App.rerender(); });
+      root.querySelector('#pr-color').addEventListener('change', (e) => { opts.bw = e.target.value === 'bw'; App.rerender(); });
       root.querySelector('#pr-ctype')?.addEventListener('change', (e) => { opts.certType = e.target.value; App.rerender(); });
       root.querySelector('#pr-date')?.addEventListener('change', (e) => { opts.date = e.target.value; App.rerender(); });
       root.querySelector('#pr-go').addEventListener('click', () => window.print());

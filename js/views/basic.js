@@ -5,10 +5,50 @@
   // ---------- Beranda ----------
   let cdTimer = null;
 
+  // Kata penyemangat untuk atlet, berganti setiap hari (urut menurut tanggal).
+  const QUOTES = [
+    'Setiap pukulan yang tenang lahir dari latihan yang sabar.',
+    'Fokus pada gate di depanmu, bukan pada papan skor.',
+    'Juara dibentuk dari ribuan ayunan yang tidak dilihat orang.',
+    'Tarik napas, baca lapangan, lalu percayai ayunanmu.',
+    'Kesalahan di gate tadi sudah lewat. Gate berikutnya masih milikmu.',
+    'Sportif saat menang, tegar saat kalah, terus belajar di keduanya.',
+    'Kemenangan terbaik adalah mengalahkan dirimu yang kemarin.',
+    'Bawa nama daerahmu dengan kerja keras dan sikap terhormat.',
+    'Disiplin hari ini adalah medali esok hari.',
+    'Lapangan tidak pernah bohong: yang berlatih, akan terlihat.',
+    'Satu pukulan terbaik cukup untuk mengubah jalannya pertandingan.',
+    'Percaya diri tumbuh dari persiapan yang matang.',
+    'Hormati lawan, hormati wasit, hormati permainan.',
+    'Tetap rendah hati saat unggul, tetap berjuang saat tertinggal.',
+    'Kendalikan yang bisa kamu kendalikan: napas, fokus, dan sikap.',
+    'Tim yang kuat saling menguatkan, bukan saling menyalahkan.',
+    'Setiap gate adalah kesempatan baru untuk bangkit.',
+    'Sabar adalah teknik yang paling sulit dan paling berharga.',
+    'Berlatih seperti sedang bertanding, bertanding seperti sedang berlatih.',
+    'Semangat yang besar dimulai dari langkah kecil yang konsisten.',
+    'Medali menyenangkan, tetapi karakter yang membuatmu dikenang.',
+    'Jangan hitung lawan, hitung pukulanmu sendiri.',
+    'Tenang itu kekuatan. Terburu-buru itu lawan.',
+    'Kamu sudah sampai sejauh ini. Selesaikan dengan sepenuh hati.',
+    'Kalah hari ini adalah pelajaran untuk menang esok hari.',
+    'Pelatih menunjukkan jalan, kamu yang melangkah.',
+    'Keringat di latihan menghemat air mata di pertandingan.',
+    'Tunjukkan semangat juang, apa pun hasil akhirnya.',
+    'Kejujuran di lapangan lebih berharga dari skor terbaik.',
+    'Bermain dengan hati, menang dengan kepala dingin.',
+    'Hari ini kesempatanmu. Ayunkan dengan yakin.',
+  ];
+  const quoteOfDay = () => {
+    const [y, m, d] = App.today().split('-').map(Number);
+    return QUOTES[Math.floor(Date.UTC(y, m - 1, d) / 86400000) % QUOTES.length];
+  };
+  const quoteHtml = (cls) => `<figure class="${cls}"><blockquote>${esc(quoteOfDay())}</blockquote><figcaption>Semangat hari ini</figcaption></figure>`;
+
   const annItems = () => {
     const reg = App.S.registration || {};
     const items = App.sortedAnnouncements();
-    if (reg.deadline) {
+    if (reg.deadline && reg.open !== false) {
       items.unshift({ pinned: true, title: 'Batas pendaftaran atlet', date: reg.deadline, body: `Pendaftaran atlet ditutup pada ${App.fmtDate(reg.deadline)}. Official kontingen mendaftar lewat menu ${App.S.menu.daftar || 'Pendaftaran'}.` });
     }
     return items;
@@ -17,42 +57,21 @@
     ${annItems().map((x) => `<article class="an-post ${x.pinned ? 'pinned' : ''}"><time>${esc(App.fmtDate(x.date))}</time><h3>${esc(x.title)}</h3><p>${esc(x.body).replace(/\n/g, '<br>')}</p></article>`).join('') || App.ui.empty('Belum ada pengumuman.')}
   </div>`;
 
-  const daysTo = (iso) => {
-    const [y, m, d] = iso.split('-').map(Number);
-    const [y2, m2, d2] = App.today().split('-').map(Number);
-    return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y2, m2 - 1, d2)) / 86400000);
-  };
-
-  // Beranda umum sebelum pertandingan: hitung mundur, pengumuman, dan info persiapan.
+  // Beranda umum sebelum pertandingan: hitung mundur, kata penyemangat, dan papan pengumuman.
   function preEvent() {
     const S = App.S, E = S.event, reg = S.registration || {};
-    const left = reg.deadline ? daysTo(reg.deadline) : null;
-    const open = reg.open !== false && !(left !== null && left < 0);
-    const wa = App.reg.waNumber(reg.contactPhone);
     const unit = (id, label) => `<div class="cd-unit"><b id="cd-${id}">00</b><span>${label}</span></div>`;
     return `<section class="pre-hero">
         <div class="hero-logos">${App.logoImgs('logo')}</div>
         <p class="pre-kicker">Cabang Olahraga ${esc(E.sport)} · ${esc(E.region)}</p>
         <h1>${esc(E.title)}</h1>
         <p class="pre-meta">${esc(App.fmtDateRange(E.dateStart, E.dateEnd))} · ${esc(E.venue)}, ${esc(E.city)}</p>
+        ${quoteHtml('pre-quote')}
         <p class="cd-title">Menuju pertandingan</p>
         <div class="cd-grid" id="countdown">${unit('d', 'Hari')}${unit('h', 'Jam')}${unit('m', 'Menit')}${unit('s', 'Detik')}</div>
-        ${reg.open !== false ? `<a class="btn pre-cta" href="daftar.html">Daftarkan Atlet</a>` : ''}
+        ${reg.open !== false ? '<a class="btn pre-cta" href="daftar.html">Daftarkan Atlet</a>' : `<a class="btn pre-cta" href="#/peserta">Lihat ${esc(S.menu.peserta || 'List Peserta')}</a>`}
       </section>
-      <div class="pre-grid">
-        ${annBoard()}
-        <aside class="pre-side">
-          <div class="card"><h3>Pendaftaran</h3>
-            <p><span class="pill ${open ? 'ok' : 'live'}">${open ? 'Dibuka' : 'Ditutup'}</span></p>
-            ${reg.deadline ? `<p class="info-big">${esc(App.fmtDate(reg.deadline))}</p><p class="muted small">${left > 0 ? `${left} hari lagi` : left === 0 ? 'Hari terakhir' : 'Batas pendaftaran sudah lewat'}</p>` : '<p class="muted small">Batas pendaftaran belum diumumkan.</p>'}
-          </div>
-          <div class="card"><h3>Persiapan</h3>
-            <div class="pre-stats"><div><b>${S.kontingen.length}</b><span>Kontingen</span></div><div><b>${S.events.length}</b><span>Nomor</span></div><div><b>${S.athletes.length}</b><span>Atlet</span></div></div>
-          </div>
-          ${reg.contactName || reg.contactPhone ? `<div class="card"><h3>Kontak Panitia</h3><p>${esc(reg.contactName || 'Panitia')}</p>
-            ${wa ? `<a class="btn sm ghost" target="_blank" rel="noopener" href="https://wa.me/${wa}">WhatsApp ${esc(reg.contactPhone)}</a>` : ''}</div>` : ''}
-        </aside>
-      </div>`;
+      ${annBoard()}`;
   }
 
   function startCountdown(root) {
@@ -109,6 +128,7 @@
         </div>
         ${warns.length ? `<div class="card warn"><b>⚠️ ${warns.length} peringatan validasi</b> - lihat di <a href="#/athletes">${esc(S.menu.athletes)}</a>.</div>` : ''}
         ${App.db.isFallback ? '<div class="card warn">Browser ini tidak mendukung IndexedDB; scan & logo tidak tersimpan permanen. Gunakan Chrome/Edge.</div>' : ''}
+        ${App.isAdmin() ? '' : quoteHtml('card day-quote')}
         ${App.isAdmin() || !annItems().length ? '' : annBoard()}
         <div class="card"><h2>Progres Pertandingan</h2>
           <div class="table-wrap"><table><thead><tr><th>Nomor</th><th>Entri</th><th>Progres</th><th>Juara 1</th></tr></thead><tbody>${evRows}</tbody></table></div>
