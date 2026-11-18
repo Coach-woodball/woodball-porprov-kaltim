@@ -15,7 +15,9 @@
     const done = ev.kind === 'team' || St.prelimDone(ev);
     const pre = ev.kind === 'team' ? [] : St.prelimRounds(ev);
     const preLabel = ev.kind === 'team' ? 'pemain yang dihitung' : pre.map((i) => ev.config.rounds[i].name).join(' + ');
-    if (!done) {
+    // Tamu (non admin) selalu melihat nilai terkecil di atas; admin melihat urutan pairing sampai penyisihan selesai.
+    const byPairing = !done && App.isAdmin();
+    if (byPairing) {
       // Sebelum ronde penyisihan selesai: urutan pairing, belum ada peringkat.
       const order = St.data(ev).rounds[0].groups.flatMap((g) => g.entryIds);
       const pos = (r) => { const i = order.indexOf(r.entry.id); return i < 0 ? 1e6 : i; };
@@ -24,7 +26,7 @@
     const rankCell = (r) => `<td class="c"><b>${r.played && done ? r.rank : '-'}</b>${done && r.tied ? ' <span class="pill warn" title="Masih sama setelah semua kriteria. Isi urutan manual (adu penalti).">=</span>' : ''}</td>`;
     const rowCls = (r) => (done && r.rank <= 3 && r.played ? 'm' + r.rank : '');
     const manualCell = (r) => (editable ? `<td><input class="tiny" type="number" data-manual="${r.entry.id}" value="${manual[r.entry.id] ?? ''}" title="Urutan hasil adu penalti (1 = terbaik)"></td>` : '');
-    const note = `<p class="muted small">${done ? '' : `Peringkat ditampilkan setelah ${esc(preLabel)} selesai; sementara diurutkan sesuai pairing. `}Kolom 1 sampai 5+: berapa kali skor itu muncul (kumulatif ${esc(preLabel)}).</p>`;
+    const note = `<p class="muted small">${done ? '' : `Peringkat ditampilkan setelah ${esc(preLabel)} selesai; sementara diurutkan ${byPairing ? 'sesuai pairing' : 'dari nilai terkecil'}. `}Kolom 1 sampai 5+: berapa kali skor itu muncul (kumulatif ${esc(preLabel)}).</p>`;
     if (ev.kind === 'team') {
       return `${note}<div class="table-wrap"><table class="rank"><thead><tr><th>Pos</th><th>Kontingen</th><th>Anggota (skor)</th><th>Total</th>${App.countHeads()}${editable ? '<th>Manual</th>' : ''}</tr></thead><tbody>
         ${rows.map((r) => `<tr class="${rowCls(r)}">${rankCell(r)}
