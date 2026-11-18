@@ -246,54 +246,196 @@
     }));
   };
 
-  // Animasi undian: nama berputar acak di setiap slot, lalu terkunci satu per satu ke hasil akhir.
-  // boxes: [{label, items:[nama]}]. Hasil sudah ditentukan sebelumnya; animasi hanya tampilan.
+  // Undian model roda putar: semua nama ada di roda, roda berhenti di nama berikutnya,
+  // nama itu masuk ke slotnya lalu keluar dari roda. boxes: [{label, items:[nama]}].
+  // Hasil sudah ditentukan sistem sebelumnya; roda hanya menampilkan urutannya.
+  const WHEEL_COLORS = ['#1f7a3e', '#c8202f', '#d9a21b', '#1d5fa8', '#2e9e6a', '#8e3fa0', '#e0702a', '#22808a'];
   App.drawAnimation = ({ title, sub, boxes }) => new Promise((resolve) => {
     const esc = App.esc;
-    const pool = boxes.flatMap((b) => b.items).filter((x) => x && x !== 'BYE');
-    if (!pool.length) return resolve();
+    const finals = boxes.flatMap((b) => b.items);
+    const clean = (s) => String(s || '').replace(/^\d+\.\s*/, '');
+    if (!finals.some((x) => x && x !== 'BYE')) return resolve();
+    let sound = true;
+    try { sound = localStorage.getItem('wb-wheel-sound') !== '0'; } catch (e) { /* abaikan */ }
     const el = document.createElement('div');
     el.className = 'draw-overlay';
-    el.innerHTML = `<div class="draw-panel glass">
-      <div class="draw-head"><div><div class="draw-title">🎲 ${esc(title)}</div>${sub ? `<div class="muted">${esc(sub)}</div>` : ''}</div>
-        <div class="draw-status pill live">Mengacak…</div></div>
-      <div class="draw-grid">${boxes.map((b, bi) => `<div class="draw-box" style="--i:${bi}"><div class="draw-label">${esc(b.label)}</div>
-        ${b.items.map(() => '<div class="draw-slot"><span>?</span></div>').join('')}</div>`).join('')}</div>
-      <div class="row gap draw-foot"><button class="btn ghost" data-skip>Lewati animasi</button><button class="btn hidden" data-close>Selesai</button></div></div>`;
+    el.innerHTML = `<div class="draw-panel glass wheel-mode">
+      <div class="draw-head"><div><div class="draw-title">🎡 ${esc(title)}</div>${sub ? `<div class="muted">${esc(sub)}</div>` : ''}</div>
+        <div class="row gap"><span class="draw-status pill live">Siap diputar</span>
+          <button class="btn sm ghost" data-sound title="Suara">${sound ? '🔊' : '🔇'}</button>
+          <button class="btn sm ghost" data-full title="Layar penuh">⛶</button></div></div>
+      <div class="wheel-body">
+        <div class="wheel-side">
+          <div class="wheel-wrap"><canvas class="wheel"></canvas><div class="wheel-pin"></div><div class="wheel-hub"></div></div>
+          <div class="wheel-pick"><small>Terpilih</small><b data-pick>-</b><span class="muted small" data-dest></span></div>
+          <div class="row gap wheel-btns"><button class="btn" data-spin>🎡 Putar</button><button class="btn ghost" data-auto>▶ Putar otomatis</button></div>
+          <div class="muted small c" data-left></div>
+        </div>
+        <div class="draw-grid">${boxes.map((b, bi) => `<div class="draw-box" style="--i:${bi}"><div class="draw-label">${esc(b.label)}</div>
+          ${b.items.map(() => '<div class="draw-slot"><span>?</span></div>').join('')}</div>`).join('')}</div>
+      </div>
+      <div class="row gap draw-foot"><button class="btn ghost" data-skip>Tampilkan semua hasil</button><button class="btn hidden" data-close>Selesai</button></div></div>`;
     document.body.appendChild(el);
+
     const slots = Array.from(el.querySelectorAll('.draw-slot'));
-    const finals = boxes.flatMap((b) => b.items);
-    const locked = new Set();
-    const rnd = () => pool[Math.floor(Math.random() * pool.length)];
-    const spin = setInterval(() => slots.forEach((s, i) => { if (!locked.has(i)) s.firstChild.textContent = rnd(); }), 70);
+    const slotDest = [];
+    boxes.forEach((b) => b.items.forEach(() => slotDest.push(b.label)));
+    const canvas = el.querySelector('canvas.wheel');
+    const ctx = canvas.getContext('2d');
+    const $ = (s) => el.querySelector(s);
+    // Isi roda = nama yang belum keluar (BYE tidak ikut roda).
+    let wheel = finals.map((x, i) => ({ i, name: clean(x) })).filter((x) => finals[x.i] && finals[x.i] !== 'BYE');
+    let next = 0, angle = 0, spinning = false, auto = false, done = false, raf = 0;
     const timers = [];
+
+    let audio = null;
+    const tick = () => {
+      if (!sound) return;
+      try {
+        audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = 'triangle'; o.frequency.value = 1400;
+        g.gain.setValueAtTime(0.08, audio.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.04);
+        o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime + 0.05);
+      } catch (e) { /* tanpa suara */ }
+    };
+
+    const size = () => {
+      const css = canvas.clientWidth || 420;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.height = Math.round(css * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return css;
+    };
+    let W = 0;
+    const draw = (hi = -1) => {
+      if (!W) W = size();
+      const r = W / 2, n = wheel.length;
+      ctx.clearRect(0, 0, W, W);
+      if (!n) {
+        ctx.beginPath(); ctx.arc(r, r, r - 4, 0, Math.PI * 2); ctx.fillStyle = WHEEL_COLORS[0]; ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = `800 ${Math.round(r * 0.13)}px Montserrat, system-ui, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Undian selesai', r, r + r * 0.32);
+        return;
+      }
+      const seg = (Math.PI * 2) / n;
+      const font = Math.max(9, Math.min(17, (r * seg) * 0.55, 300 / Math.max(8, n)));
+      for (let k = 0; k < n; k++) {
+        const a0 = angle + k * seg - Math.PI / 2;
+        ctx.beginPath(); ctx.moveTo(r, r); ctx.arc(r, r, r - 4, a0, a0 + seg); ctx.closePath();
+        ctx.fillStyle = WHEEL_COLORS[(n % WHEEL_COLORS.length === 1 && k === n - 1) ? 2 : k % WHEEL_COLORS.length];
+        ctx.fill();
+        if (k === hi) { ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fill(); }
+        ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = n > 40 ? 0.6 : 1.4; ctx.stroke();
+        ctx.save();
+        ctx.translate(r, r); ctx.rotate(a0 + seg / 2);
+        ctx.fillStyle = '#fff'; ctx.font = `600 ${font}px Montserrat, system-ui, sans-serif`;
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        let t = wheel[k].name; const max = r * 0.72;
+        while (t.length > 3 && ctx.measureText(t).width > max) t = t.slice(0, -2);
+        if (t !== wheel[k].name) t = t.replace(/\s+$/, '') + '…';
+        ctx.fillText(t, r - 14, 0);
+        ctx.restore();
+      }
+      ctx.beginPath(); ctx.arc(r, r, r - 2, 0, Math.PI * 2); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.stroke();
+    };
+
+    const fillByes = () => { while (next < finals.length && (!finals[next] || finals[next] === 'BYE')) lock(next++); };
     const lock = (i) => {
-      if (locked.has(i)) return;
-      locked.add(i);
       const s = slots[i];
+      if (!s || s.classList.contains('locked')) return;
       s.firstChild.textContent = finals[i] || '-';
       s.classList.add('locked');
       if (finals[i] === 'BYE') s.classList.add('bye');
       s.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     };
-    const finish = () => {
-      timers.forEach(clearTimeout);
-      clearInterval(spin);
-      slots.forEach((_, i) => lock(i));
-      el.querySelector('.draw-status').textContent = 'Selesai';
-      el.querySelector('.draw-status').className = 'draw-status pill ok';
-      el.querySelector('[data-skip]').classList.add('hidden');
-      el.querySelector('[data-close]').classList.remove('hidden');
+    const status = () => {
+      $('[data-left]').textContent = wheel.length ? `${wheel.length} nama tersisa di roda` : '';
     };
-    // ±1,2 detik berputar, lalu kunci berurutan (total ±4 detik, berapa pun jumlah slot)
-    const step = Math.max(45, Math.min(320, 3200 / slots.length));
-    slots.forEach((_, i) => timers.push(setTimeout(() => lock(i), 1200 + i * step)));
-    timers.push(setTimeout(finish, 1300 + slots.length * step));
-    el.querySelector('[data-skip]').addEventListener('click', finish);
-    el.querySelector('[data-close]').addEventListener('click', () => {
+    const finish = () => {
+      done = true; auto = false; spinning = false;
+      cancelAnimationFrame(raf); timers.forEach(clearTimeout);
+      slots.forEach((_, i) => lock(i));
+      wheel = []; draw(); status();
+      $('.draw-status').textContent = 'Selesai';
+      $('.draw-status').className = 'draw-status pill ok';
+      ['[data-skip]', '[data-spin]', '[data-auto]'].forEach((s) => $(s).classList.add('hidden'));
+      $('[data-close]').classList.remove('hidden');
+    };
+
+    const spin = () => {
+      if (spinning || done) return;
+      fillByes();
+      if (next >= finals.length || !wheel.length) return finish();
+      const k = wheel.findIndex((w) => w.i === next);
+      const n = wheel.length, seg = (Math.PI * 2) / n;
+      // Pusat segmen k berada di atas (jarum) saat angle + (k + .5) * seg = 0 (mod 2π); beri sedikit acak di dalam segmen.
+      const jitter = (Math.random() - 0.5) * seg * 0.6;
+      const base = -((k + 0.5) * seg) + jitter;
+      const turns = (auto ? 3 : 5) + Math.floor(Math.random() * 2);
+      let target = base;
+      while (target < angle + turns * Math.PI * 2) target += Math.PI * 2;
+      const start = angle, dist = target - start, dur = n === 1 ? 900 : (auto ? 2600 : 4600);
+      const t0 = performance.now();
+      let lastSeg = Math.floor(((-start) / seg) % n);
+      spinning = true;
+      $('.draw-status').textContent = 'Berputar…';
+      $('[data-pick]').textContent = '…'; $('[data-dest]').textContent = '';
+      $('[data-spin]').disabled = true;
+      const frame = (now) => {
+        const p = Math.min(1, (now - t0) / dur);
+        angle = start + dist * (1 - Math.pow(1 - p, 4));
+        const cur = Math.floor((((-angle) / seg) % n + n) % n);
+        if (cur !== lastSeg) { lastSeg = cur; tick(); }
+        draw();
+        if (p < 1) { raf = requestAnimationFrame(frame); return; }
+        angle = ((target % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        draw(k);
+        const picked = wheel[k];
+        $('[data-pick]').textContent = picked.name;
+        $('[data-dest]').textContent = '→ ' + slotDest[picked.i];
+        $('.wheel-pick').classList.remove('pop'); void $('.wheel-pick').offsetWidth; $('.wheel-pick').classList.add('pop');
+        timers.push(setTimeout(() => {
+          lock(picked.i);
+          wheel.splice(k, 1);
+          next = picked.i + 1;
+          fillByes();
+          spinning = false;
+          $('[data-spin]').disabled = false;
+          $('.draw-status').textContent = auto ? 'Putar otomatis' : 'Siap diputar';
+          draw(); status();
+          if (!wheel.length) return finish();
+          if (auto) timers.push(setTimeout(spin, 700));
+        }, auto ? 900 : 1400));
+      };
+      raf = requestAnimationFrame(frame);
+    };
+
+    $('[data-spin]').addEventListener('click', () => { auto = false; spin(); });
+    $('[data-auto]').addEventListener('click', (e) => {
+      auto = !auto;
+      e.currentTarget.textContent = auto ? '⏸ Jeda otomatis' : '▶ Putar otomatis';
+      if (auto) spin();
+    });
+    $('[data-sound]').addEventListener('click', (e) => {
+      sound = !sound; e.currentTarget.textContent = sound ? '🔊' : '🔇';
+      try { localStorage.setItem('wb-wheel-sound', sound ? '1' : '0'); } catch (err) { /* abaikan */ }
+    });
+    $('[data-full]').addEventListener('click', () => {
+      if (document.fullscreenElement) document.exitFullscreen?.(); else el.requestFullscreen?.().catch(() => {});
+    });
+    $('[data-skip]').addEventListener('click', finish);
+    $('[data-close]').addEventListener('click', () => {
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
       el.classList.add('out');
       setTimeout(() => { el.remove(); resolve(); }, 200);
     });
+    const onResize = () => { W = size(); draw(); };
+    window.addEventListener('resize', onResize);
+    requestAnimationFrame(() => { W = size(); fillByes(); draw(); status(); });
+    const obs = new MutationObserver(() => { if (!el.isConnected) { window.removeEventListener('resize', onResize); obs.disconnect(); } });
+    obs.observe(document.body, { childList: true });
   });
 
   App.start = async () => {
