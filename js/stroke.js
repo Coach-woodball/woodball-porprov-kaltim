@@ -13,7 +13,7 @@
     const all = App.S.stroke;
     if (!all[ev.id]) all[ev.id] = { rounds: [], manual: {} };
     const d = all[ev.id];
-    const n = ev.kind === 'team' ? 0 : ev.config.rounds.length;
+    const n = ev.kind === 'team' && !ev.config.own ? 0 : ev.config.rounds.length;
     while (d.rounds.length < n) d.rounds.push({ groups: [], scores: {}, scans: {} });
     d.manual = d.manual || {};
     return d;
@@ -61,6 +61,11 @@
 
   St.inGroups = (ev, ri) => new Set(St.data(ev).rounds[ri].groups.flatMap((g) => g.entryIds));
 
+  // Yang dipairing: entri, atau pemain tiap tim untuk Team Stroke yang dimainkan sendiri.
+  St.units = (ev) => (ev.kind === 'team' && ev.config.own
+    ? App.entriesOf(ev.id).flatMap((e) => e.members.filter(Boolean))
+    : App.entriesOf(ev.id).map((e) => e.id));
+
   St.participants = (ev, ri) => {
     const d = St.data(ev);
     const r = d.rounds[ri];
@@ -69,7 +74,7 @@
     if (ri === 0 || !rc.cut) {
       // Peserta ronde tanpa cut = peserta ronde sebelumnya (atau semua entri).
       if (ri > 0 && d.rounds[ri - 1].groups.length) return d.rounds[ri - 1].groups.flatMap((g) => g.entryIds);
-      return App.entriesOf(ev.id).map((e) => e.id);
+      return St.units(ev);
     }
     return St.ranking(ev, ri).filter((row) => row.played > 0).slice(0, rc.cut).map((row) => row.entry.id);
   };
@@ -164,10 +169,23 @@
     return { total, played, gates, ob, found: true };
   };
 
+  // Skor pemain di Team Stroke yang dimainkan sendiri (skor disimpan per atlet).
+  St.ownMemberScore = (ev, athleteId) => {
+    let total = 0, played = 0, ob = 0;
+    const gates = [];
+    ev.config.rounds.forEach((rc, ri) => {
+      const s = St.sumScore(St.score(ev, ri, athleteId), rc.gates);
+      total += s.sum; played += s.played; ob += s.ob; gates.push(...s.gates);
+    });
+    return { total, played, gates, ob, found: true };
+  };
+  St.teamSource = (ev) => (ev.config.own ? { ev, rounds: ev.config.rounds.map((_, i) => i) } : { ev: App.event(ev.config.sourceEvent), rounds: ev.config.sourceRounds || [] });
+
   St.teamRanking = (ev) => {
     const src = App.event(ev.config.sourceEvent);
+    const zero = { total: 0, played: 0, gates: [], ob: 0 };
     const rows = App.entriesOf(ev.id).map((entry) => {
-      const members = entry.members.filter(Boolean).map((aid) => ({ athleteId: aid, ...(src ? St.memberScore(src, aid, ev.config.sourceRounds) : { total: 0, played: 0, gates: [], ob: 0 }) }));
+      const members = entry.members.filter(Boolean).map((aid) => ({ athleteId: aid, ...(ev.config.own ? St.ownMemberScore(ev, aid) : src ? St.memberScore(src, aid, ev.config.sourceRounds) : zero) }));
       const counted = members.filter((m) => m.played > 0).sort((a, b) => a.total - b.total).slice(0, ev.config.countBest);
       const total = counted.reduce((s, m) => s + m.total, 0);
       const played = counted.reduce((s, m) => s + m.played, 0);
@@ -177,27 +195,29 @@
         best: counted.length ? counted[0].total : null,
         counts: St.counts(counted.flatMap((m) => m.gates)),
         rounds: [{ gates: counted.flatMap((m) => m.gates) }],
+        nCounted: counted.length,
         complete: counted.length >= Math.min(ev.config.countBest, members.length) && played > 0,
       };
     });
-    const primary = (a, b) => (b.played > 0) - (a.played > 0) || a.total - b.total;
+    // Tim dengan lebih banyak pemain yang dihitung selalu di atas (tim kurang pemain tidak boleh unggul karena totalnya kecil).
+    const primary = (a, b) => (b.played > 0) - (a.played > 0) || b.nCounted - a.nCounted || a.total - b.total;
     return assignRanks(ev, rows, primary);
   };
 
   // Rincian Team Stroke: skor tiap gate per pemain (dari nomor single) dan jumlah tim per gate.
   // Hanya pemain yang dihitung (countBest terbaik) yang dijumlahkan.
   St.teamDetail = (ev) => {
-    const src = App.event(ev.config.sourceEvent);
+    const { ev: src, rounds: srcRounds } = St.teamSource(ev);
     if (!src) return null;
     const cols = [];
-    (ev.config.sourceRounds || []).forEach((ri) => {
+    srcRounds.forEach((ri) => {
       const rc = src.config.rounds[ri];
       if (rc) for (let g = 0; g < rc.gates; g++) cols.push({ ri, g, round: rc.name });
     });
     const teams = St.ranking(ev).map((row) => {
       const counted = new Set(row.members.filter((m) => m.played > 0).sort((a, b) => a.total - b.total).slice(0, ev.config.countBest).map((m) => m.athleteId));
       const members = row.members.map((m) => {
-        const e = App.entriesOf(src.id).find((x) => x.members.includes(m.athleteId));
+        const e = ev.config.own ? { id: m.athleteId } : App.entriesOf(src.id).find((x) => x.members.includes(m.athleteId));
         const vals = cols.map((c) => {
           const v = e ? St.score(src, c.ri, e.id).g[c.g] : null;
           return v === null || v === undefined || v === '' ? null : +v;
@@ -267,7 +287,7 @@
 
   // Status ringkas per ronde untuk dashboard.
   St.progress = (ev) => {
-    if (ev.kind === 'team') return null;
+    if (ev.kind === 'team' && !ev.config.own) return null;
     return ev.config.rounds.map((rc, ri) => {
       const ids = St.participants(ev, ri);
       const done = ids.filter((id) => St.sumScore(St.score(ev, ri, id), rc.gates).played >= rc.gates).length;

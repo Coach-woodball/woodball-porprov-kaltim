@@ -5,7 +5,8 @@
   function summary(ev) {
     const c = ev.config;
     if (ev.discipline === 'stroke') {
-      if (ev.kind === 'team') return `Jumlah ${c.countBest} pemain terbaik dari ${esc((App.event(c.sourceEvent) || {}).name || '?')}`;
+      if (ev.kind === 'team' && !c.own) return `Jumlah ${c.countBest} pemain terbaik dari ${esc((App.event(c.sourceEvent) || {}).name || '?')}`;
+      if (ev.kind === 'team') return `Dimainkan sendiri · ${c.rounds.map((r) => `${esc(r.name)} (${r.gates} gate)`).join(', ')} · ${c.countBest} pemain dihitung`;
       return c.rounds.map((r) => `${esc(r.name)} (${r.gates}${r.cut ? `, ${r.cut} besar` : ''})`).join(' → ');
     }
     return `${App.fairway.FORMATS[c.format]}${c.format === 'group_ko' ? ` · ${c.groupCount} grup, ${c.qualify} lolos` : ''} · ${App.fairway.THIRD[c.thirdPlace]}`;
@@ -61,14 +62,17 @@
     const c = ev.config;
     const num = (name, val, label, min = 0) => `<label>${label}<input type="number" min="${min}" data-cfg="${name}" value="${val ?? ''}"></label>`;
     let html = '';
-    if (ev.discipline === 'stroke' && ev.kind !== 'team') {
+    const ownSel = ev.discipline === 'stroke' && ev.kind === 'team'
+      ? `<div class="grid4"><label>Cara main<select id="ts-own">${App.ui.options([['1', 'Dimainkan sendiri (pairing & skor sendiri)'], ['0', 'Dihitung dari skor nomor single']], c.own ? '1' : '0')}</select></label></div>` : '';
+    html += ownSel;
+    if (ev.discipline === 'stroke' && (ev.kind !== 'team' || c.own)) {
       html += `<h4>Ronde</h4><div class="table-wrap"><table><thead><tr><th>#</th><th>Nama ronde</th><th>Jumlah gate</th><th>Cut (hanya N besar)</th><th></th></tr></thead><tbody>
         ${c.rounds.map((r, i) => `<tr><td class="c">${i + 1}</td><td><input data-round="${i}" data-f="name" value="${esc(r.name)}"></td>
         <td><input type="number" min="1" data-round="${i}" data-f="gates" value="${r.gates}" style="max-width:90px"></td>
         <td><input type="number" min="0" data-round="${i}" data-f="cut" value="${r.cut || ''}" placeholder="semua" style="max-width:110px"></td>
         <td><button class="btn sm danger" data-round-del="${i}">Hapus</button></td></tr>`).join('')}
         </tbody></table></div><button class="btn sm ghost" id="round-add">+ Tambah ronde</button>
-        <div class="grid4">${num('groupSize', c.groupSize, 'Peserta per pairing', 1)}${num('maxPerKontingen', c.maxPerKontingen, 'Maks. entri per kontingen')}</div>`;
+        <div class="grid4">${num('groupSize', c.groupSize, 'Peserta per pairing', 1)}${ev.kind === 'team' ? num('countBest', c.countBest, 'Jumlah pemain yang dihitung', 1) : ''}${num('maxPerKontingen', c.maxPerKontingen, ev.kind === 'team' ? 'Maks. tim per kontingen' : 'Maks. entri per kontingen')}</div>`;
     } else if (ev.discipline === 'stroke') {
       const src = App.event(c.sourceEvent);
       html += `<div class="grid4">
@@ -163,6 +167,12 @@
       App.stroke.data(ev).rounds.splice(i, 1);
       App.commit();
     }));
+    $('#ts-own')?.addEventListener('change', (e) => {
+      c.own = e.target.value === '1';
+      if (c.own && !(c.rounds || []).length) c.rounds = [{ name: 'Penyisihan R1', gates: 12, cut: null }, { name: 'Penyisihan R2', gates: 12, cut: null }];
+      c.groupSize = c.groupSize || 4;
+      App.commit(c.own ? 'Team Stroke dimainkan sendiri' : 'Team Stroke dihitung dari skor single');
+    });
     $('#round-add')?.addEventListener('click', () => { c.rounds.push({ name: `Ronde ${c.rounds.length + 1}`, gates: 12, cut: null }); App.commit(); });
     root.querySelectorAll('[data-srcround]').forEach((cb) => cb.addEventListener('change', () => {
       const i = +cb.dataset.srcround;

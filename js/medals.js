@@ -69,7 +69,7 @@
           const g = ms.map((id) => (App.athlete(id) || {}).gender).sort().join('');
           if (g !== 'LP') warn(`${ev.name}: pasangan ${App.entryName(e)} harus 1 putra + 1 putri.`);
         }
-        if (ev.discipline === 'stroke' && ev.kind === 'team') {
+        if (ev.discipline === 'stroke' && ev.kind === 'team' && !ev.config.own) {
           const src = App.event(ev.config.sourceEvent);
           if (src) ms.forEach((aid) => {
             if (!App.entriesOf(src.id).some((x) => x.members.includes(aid))) warn(`${ev.name}: ${App.athName(aid)} tidak terdaftar di ${src.name}.`);

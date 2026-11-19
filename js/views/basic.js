@@ -99,7 +99,7 @@
       const evRows = S.events.map((ev) => {
         const n = App.entriesOf(ev.id).length;
         let prog = '-';
-        if (ev.discipline === 'stroke' && ev.kind !== 'team') {
+        if (ev.discipline === 'stroke' && (ev.kind !== 'team' || ev.config.own)) {
           prog = App.stroke.progress(ev).map((p) => `${esc(p.name)}: ${p.done}/${p.total}`).join(' · ');
         } else if (ev.discipline === 'fairway') {
           const p = App.fairway.progress(ev);

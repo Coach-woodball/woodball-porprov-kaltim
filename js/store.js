@@ -38,6 +38,14 @@
   function migrate(s) {
     const d = App.defaultState();
     s.event = Object.assign({}, d.event, s.event || {});
+    // Team Stroke dimainkan sendiri (R1 + R2, semua pemain dihitung) sejak 19 Nov 2026.
+    s.events.forEach((e) => {
+      if (e.discipline !== 'stroke' || e.kind !== 'team' || e.config.own !== undefined) return;
+      e.config.own = true;
+      e.config.rounds = [{ name: 'Penyisihan R1', gates: 12, cut: null }, { name: 'Penyisihan R2', gates: 12, cut: null }];
+      e.config.groupSize = 4;
+      e.config.countBest = 4;
+    });
     const OLD_CERT = {
       certBody: 'Sebagai JUARA {juara} ({medali}) Nomor {nomor} pada Cabang Olahraga Woodball {event} yang dilaksanakan pada tanggal {tanggal} di {kota}.',
       certPartBody: 'Sebagai PESERTA Nomor {nomor} pada Cabang Olahraga Woodball {event} yang dilaksanakan pada tanggal {tanggal} di {kota}.',
@@ -75,7 +83,9 @@
   App.kName = (id) => { const k = App.kontingen(id); return k ? k.name : '-'; };
   App.athlete = (id) => App.S.athletes.find((a) => a.id === id);
   App.event = (id) => App.S.events.find((e) => e.id === id);
-  App.entry = (id) => App.S.entries.find((e) => e.id === id);
+  App.entry = (id) => App.S.entries.find((e) => e.id === id) || App.athleteEntry(id);
+  // Pemain Team Stroke (dimainkan sendiri) dipairing per orang: atlet tampil seperti entri single.
+  App.athleteEntry = (id) => { const a = App.athlete(id); return a ? { id, eventId: null, kontingenId: a.kontingenId, members: [id] } : undefined; };
   App.entriesOf = (evId) => App.S.entries.filter((e) => e.eventId === evId);
 
   App.genderLabel = (g) => (g === 'L' ? 'Putra' : g === 'P' ? 'Putri' : 'Campuran');

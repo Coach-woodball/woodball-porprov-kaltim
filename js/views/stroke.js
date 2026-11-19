@@ -130,7 +130,7 @@
       const ev = App.event(params[0]) || evs[0];
       if (!ev) return App.ui.empty('Belum ada nomor stroke.');
       let html = `<h2>${esc(App.S.menu.stroke)}</h2>${App.ui.eventTabs('stroke', ev.id, 'stroke')}`;
-      if (ev.kind === 'team') {
+      if (ev.kind === 'team' && !ev.config.own) {
         const src = App.event(ev.config.sourceEvent);
         return html + `<div class="card"><h3>${esc(ev.name)}</h3><p class="muted">Dihitung otomatis dari skor ${esc(src ? src.name : '?')} (${ev.config.sourceRounds.map((i) => src?.config.rounds[i]?.name).join(' + ')}), ${ev.config.countBest} pemain terbaik. Anggota tim diatur di <a href="#/events/${ev.id}">Nomor & Entri</a>.</p>
           <div id="rank-box">${App.strokeRankingTable(ev, { editable: true })}</div></div>
@@ -143,12 +143,12 @@
       const parts = St.participants(ev, ri);
       html += `<div class="tabs sub">${ev.config.rounds.map((x, i) => `<a href="#/stroke/${ev.id}/${i}" class="${i === ri ? 'active' : ''}">${esc(x.name)}</a>`).join('')}</div>`;
       html += `<div class="card"><div class="row between wrap"><div><h3>${esc(ev.name)} · ${esc(rc.name)}</h3>
-          <p class="muted">${parts.length} peserta · ${rc.gates} gate${rc.cut ? ` · hanya ${rc.cut} besar` : ''} · ${ev.config.groupSize} per pairing</p>
+          <p class="muted">${ev.kind === 'team' ? `${App.entriesOf(ev.id).length} tim · ` : ''}${parts.length} pemain · ${rc.gates} gate${rc.cut ? ` · hanya ${rc.cut} besar` : ''} · ${ev.config.groupSize} per pairing</p>
           <div class="row gap wrap gate-ctl"><span class="small muted">Jumlah gate</span><button class="btn xs ghost" data-gate="-1" title="Kurangi 1 gate">−</button><b>${rc.gates}</b><button class="btn xs ghost" data-gate="1" title="Tambah 1 gate">+</button>${App.scoreLegend()}</div></div>
           <div class="row gap wrap">
             ${ri > 0 && !rc.cut && d.rounds[ri - 1].groups.length ? `<button class="btn sm" data-gen="copy">📋 Sama dengan ${esc(ev.config.rounds[ri - 1].name)}</button>` : ''}
             <button class="btn sm${ri > 0 && !rc.cut ? ' ghost' : ''}" data-gen="random">🎲 Undi acak</button>
-            ${ri > 0 ? '<button class="btn sm ghost" data-gen="rank">📊 Urut ranking</button>' : ''}
+            ${ri > 0 && ev.kind !== 'team' ? '<button class="btn sm ghost" data-gen="rank">📊 Urut ranking</button>' : ''}
             <button class="btn sm ghost" data-gen="order">↕ Urut daftar</button>
             <button class="btn sm ghost" id="manual-toggle">✋ Atur manual</button>
             ${r.groups.length ? `<a class="btn sm ghost" href="#/print/scorecard-stroke/${ev.id}/${ri}">🖨️ Semua score card</a>` : ''}
@@ -160,6 +160,7 @@
       html += `<div class="card"><div class="row between"><h3>Ranking ${esc(ev.name)}</h3><a class="btn sm ghost" href="#/print/result/${ev.id}">🖨️ Hasil resmi</a></div>
         <p class="muted small">Penentuan jika sama: ${(ev.config.tiebreak || []).map((k) => esc(St.TIEBREAKS[k])).join(' → ')}</p>
         <div id="rank-box">${App.strokeRankingTable(ev, { editable: true })}</div></div>`;
+      if (ev.kind === 'team') html += `<div class="card"><h3>Skor per gate tim</h3><p class="muted small">Skor tiap pemain di setiap gate dan jumlah tim per gate.</p><div id="tg-box">${App.teamGateTable(ev)}</div></div>`;
       return html;
     },
     mount(root, params) {
@@ -173,7 +174,7 @@
         App.commit('Urutan manual disimpan');
       }));
       bindManual();
-      if (ev.kind === 'team') return;
+      if (ev.kind === 'team' && !ev.config.own) return;
       const ri = Math.min(+(params[1] || 0), ev.config.rounds.length - 1);
       const rc = ev.config.rounds[ri];
       const r = St.data(ev).rounds[ri];
@@ -220,6 +221,8 @@
       const refreshRank = () => {
         const box = root.querySelector('#rank-box');
         box.innerHTML = App.strokeRankingTable(ev, { editable: true });
+        const tg = root.querySelector('#tg-box');
+        if (tg) tg.innerHTML = App.teamGateTable(ev);
         bindManual();
       };
       const inputs = Array.from(root.querySelectorAll('input.sc'));
@@ -262,7 +265,7 @@
     let ids = parts;
     if (ri > 0 || !r.groups.length) {
       // tampilkan juga peserta yang belum punya pairing
-      const all = new Set([...St.participants(ev, ri), ...(ri === 0 ? App.entriesOf(ev.id).map((e) => e.id) : [])]);
+      const all = new Set([...St.participants(ev, ri), ...(ri === 0 ? St.units(ev) : [])]);
       ids = Array.from(all);
     }
     return `<p class="muted">Isi nomor pairing untuk tiap peserta (kosongkan untuk mengeluarkan dari ronde ini), lalu klik Terapkan.</p>

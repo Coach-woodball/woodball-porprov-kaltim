@@ -20,6 +20,12 @@
     maxPerKontingen: 1,
   });
   const strokeTeam = (src) => ({
+    own: true, // dimainkan sendiri (pairing & skor sendiri); false = dihitung dari skor nomor single
+    rounds: [
+      { name: 'Penyisihan R1', gates: 12, cut: null },
+      { name: 'Penyisihan R2', gates: 12, cut: null },
+    ],
+    groupSize: 4,
     sourceEvent: src,
     sourceRounds: [0, 1],
     countBest: 4,

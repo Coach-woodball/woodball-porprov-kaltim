@@ -170,11 +170,11 @@
   // ---------- Skor per gate Team Stroke (halaman sendiri, juga di Hasil Resmi) ----------
   function teamGatesPage(ev) {
     const E = App.S.event;
-    const src = App.event(ev.config.sourceEvent);
-    const sr = (ev.config.sourceRounds || []).map((i) => src && src.config.rounds[i]).filter(Boolean);
+    const { ev: src, rounds: srcRounds } = St.teamSource(ev);
+    const sr = srcRounds.map((i) => src && src.config.rounds[i]).filter(Boolean);
     return `<section class="page flow">${kop('SKOR PER GATE', esc(ev.name))}
-      <div class="info"><span>Sumber: <b>${esc(src ? src.name : '-')}</b></span><span>Ronde: <b>${esc(sr.map((r) => r.name).join(' + '))}</b></span>
-        <span>Dihitung: <b>${ev.config.countBest} pemain terbaik per tim</b></span><span>Tempat: <b>${esc(E.venue)}</b></span></div>
+      <div class="info">${ev.config.own ? '' : `<span>Sumber: <b>${esc(src ? src.name : '-')}</b></span>`}<span>Ronde: <b>${esc(sr.map((r) => r.name).join(' + '))}</b></span>
+        <span>Dihitung: <b>${ev.config.own && ev.config.countBest >= 4 ? 'semua pemain' : ev.config.countBest + ' pemain terbaik per tim'}</b></span><span>Tempat: <b>${esc(E.venue)}</b></span></div>
       ${App.teamGateTable(ev, { print: true })}
       <p class="note">Jumlah tim per gate hanya dari pemain yang dihitung. Total tim = jumlah ${esc(sr.map((r) => r.name.replace(/^Penyisihan\s*/i, '')).join(' + '))} pemain yang dihitung.</p>
       <div class="signs end">${signBox(E.resultSigner.title, E.resultSigner.name, true)}</div>
@@ -230,8 +230,8 @@
       const rows = St.ranking(ev).filter((r) => r.played > 0);
       if (ev.kind === 'team') {
         // Ringkas per pemain: total tiap ronde sumber, jumlah pemain, lalu total tim.
-        const src = App.event(ev.config.sourceEvent);
-        const sr = (ev.config.sourceRounds || []).filter((i) => src && src.config.rounds[i]);
+        const { ev: src, rounds: srcRounds } = St.teamSource(ev);
+        const sr = srcRounds.filter((i) => src && src.config.rounds[i]);
         const detail = St.teamDetail(ev);
         const countedOf = Object.fromEntries((detail ? detail.teams : []).map((t) => [t.row.entry.id, new Set(t.members.filter((m) => m.counted).map((m) => m.athleteId))]));
         body = `<table class="pt team-sum"><thead><tr><th>Pos</th><th>Kab/Kota</th><th>Pemain</th>${sr.map((i) => `<th>${esc(src.config.rounds[i].name)}</th>`).join('')}<th>Jumlah</th><th>Total tim</th><th>Ket.</th></tr></thead><tbody>
@@ -239,7 +239,7 @@
             const ms = r.members;
             const counted = countedOf[r.entry.id] || new Set();
             return ms.map((m, mi) => {
-              const per = sr.map((i) => (src ? St.memberScore(src, m.athleteId, [i]) : { played: 0, total: 0 }));
+              const per = sr.map((i) => (!src ? { played: 0, total: 0 } : ev.config.own ? (() => { const s = St.sumScore(St.score(src, i, m.athleteId), src.config.rounds[i].gates); return { played: s.played, total: s.sum }; })() : St.memberScore(src, m.athleteId, [i])));
               const first = mi === 0;
               return `<tr class="${first ? 'ts-first' : ''}">${first ? `<td class="c" rowspan="${ms.length}"><b>${r.rank}</b></td><td rowspan="${ms.length}">${esc(App.kName(r.entry.kontingenId))}</td>` : ''}
                 <td>${esc(App.athName(m.athleteId))}${counted.has(m.athleteId) ? '' : ' <small>(tidak dihitung)</small>'}</td>
@@ -407,7 +407,7 @@
     if (!ev) return '<p class="c">Pilih nomor.</p>';
     if (doc === 'scorecard-stroke') {
       if (ev.discipline !== 'stroke') return '<p class="c">Pilih nomor stroke.</p>';
-      if (ev.kind === 'team') return teamGatesPage(ev);
+      if (ev.kind === 'team' && (!ev.config.own || params[1] === 'tg')) return teamGatesPage(ev);
       // 'p' = semua ronde penyisihan (R1 + R2), 'a' = semua ronde (R1 + R2 + Final)
       if (params[1] === 'p') return strokeCombined(ev, St.prelimRounds(ev));
       if (params[1] === 'a') return strokeCombined(ev, ev.config.rounds.map((_, i) => i));
@@ -439,17 +439,18 @@
       const needEv = !['medals', 'athletes'].includes(doc);
       const evList = App.S.events.filter((e) => (doc === 'scorecard-stroke' ? e.discipline === 'stroke' : doc === 'scorecard-fairway' || doc === 'bracket' ? e.discipline === 'fairway' : true));
       let extra = '';
-      if (doc === 'scorecard-stroke' && ev && ev.kind === 'team') {
+      if (doc === 'scorecard-stroke' && ev && ev.kind === 'team' && !ev.config.own) {
         const src = App.event(ev.config.sourceEvent);
         extra = `<select id="pr-round" disabled>${App.ui.options([['', (ev.config.sourceRounds || []).map((i) => src?.config.rounds[i]?.name).filter(Boolean).join(' + ')]], '')}</select>`;
       } else if (doc === 'scorecard-stroke' && ev) {
         const rcs = ev.config.rounds;
         const pre = St.prelimRounds(ev);
         const combos = [];
-        if (pre.length > 1) combos.push(['p', pre.map((i) => rcs[i].name).join(' + ')]);
-        if (rcs.length > pre.length) combos.push(['a', rcs.map((r) => r.name).join(' + ')]);
+        if (ev.kind === 'team') combos.push(['tg', 'Skor per gate tim (R1 + R2)']);
+        else if (pre.length > 1) combos.push(['p', pre.map((i) => rcs[i].name).join(' + ')]);
+        if (ev.kind !== 'team' && rcs.length > pre.length) combos.push(['a', rcs.map((r) => r.name).join(' + ')]);
         extra = `<select id="pr-round">${App.ui.options([...rcs.map((r, i) => [i, r.name]), ...combos], p[1] || 0)}</select>`;
-        if (!p[2] && !['p', 'a'].includes(p[1])) extra += `<select id="pr-layout">${App.ui.options([['sheet', 'Rekap 1 halaman'], ['cards', 'Kartu per pairing']], opts.layout)}</select>`;
+        if (!p[2] && !['p', 'a', 'tg'].includes(p[1])) extra += `<select id="pr-layout">${App.ui.options([['sheet', 'Rekap 1 halaman'], ['cards', 'Kartu per pairing']], opts.layout)}</select>`;
       }
       return `<div class="print-toolbar no-print card">
           <div class="row gap wrap">

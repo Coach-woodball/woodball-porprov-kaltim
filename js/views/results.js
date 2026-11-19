@@ -15,14 +15,14 @@
   // Daftar pairing per ronde untuk umum: siapa main bersama siapa, lapangan, dan jam.
   // Ronde terakhir yang sudah ada pairing-nya terbuka; ronde lain bisa dibuka.
   App.pairingPublicHtml = (ev) => {
-    if (ev.discipline !== 'stroke' || ev.kind === 'team') return '';
+    if (ev.discipline !== 'stroke' || (ev.kind === 'team' && !ev.config.own)) return '';
     const d = App.stroke.data(ev);
     const list = ev.config.rounds.map((rc, ri) => ({ rc, ri, groups: (d.rounds[ri] || { groups: [] }).groups.filter((g) => g.entryIds.length) }))
       .filter((x) => x.groups.length);
     if (!list.length) return `<h4>Pairing</h4>${App.ui.empty('Pairing belum diundi.')}`;
     const last = list[list.length - 1].ri;
     return `<h4>Pairing</h4>${list.map(({ rc, ri, groups }) => `<details class="pair-round" ${ri === last ? 'open' : ''}>
-      <summary><b>${esc(rc.name)}</b> <span class="muted small">${groups.length} pairing · ${groups.reduce((n, g) => n + g.entryIds.length, 0)} ${ev.kind === 'single' ? 'atlet' : 'entri'}</span></summary>
+      <summary><b>${esc(rc.name)}</b> <span class="muted small">${groups.length} pairing · ${groups.reduce((n, g) => n + g.entryIds.length, 0)} ${ev.kind === 'double' ? 'entri' : 'atlet'}</span></summary>
       <div class="pair-grid">${groups.map((g) => `<div class="pair-box">
         <div class="pair-head"><b>Pairing ${g.no}</b><span class="muted small">${[g.lane ? 'Lapangan ' + esc(g.lane) : '', g.time ? 'Jam ' + esc(g.time) : ''].filter(Boolean).join(' · ')}</span></div>
         <ol>${g.entryIds.map((id) => { const e = App.entry(id); return `<li><span>${esc(App.entryName(e))}</span><small>${esc(App.kShort(e?.kontingenId))}</small></li>`; }).join('')}</ol>
