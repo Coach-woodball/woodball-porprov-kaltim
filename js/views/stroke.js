@@ -26,7 +26,7 @@
     const rankCell = (r) => `<td class="c"><b>${r.played && done ? r.rank : '-'}</b>${done && r.tied ? ' <span class="pill warn" title="Masih sama setelah semua kriteria. Isi urutan manual (adu penalti).">=</span>' : ''}</td>`;
     const rowCls = (r) => (done && r.rank <= 3 && r.played ? 'm' + r.rank : '');
     const manualCell = (r) => (editable ? `<td><input class="tiny" type="number" data-manual="${r.entry.id}" value="${manual[r.entry.id] ?? ''}" title="Urutan hasil adu penalti (1 = terbaik)"></td>` : '');
-    const note = `<p class="muted small">${done ? '' : `Peringkat ditampilkan setelah ${esc(preLabel)} selesai; sementara diurutkan ${byPairing ? 'sesuai pairing' : 'dari nilai terkecil'}. `}Kolom 1 sampai 5+: berapa kali skor itu muncul (kumulatif ${esc(preLabel)}).</p>`;
+    const note = `<p class="muted small">${done ? '' : `Peringkat ditampilkan setelah ${esc(preLabel)} selesai; sementara diurutkan ${byPairing ? 'sesuai pairing' : 'dari nilai terkecil'}. `}Kolom 1 sampai 5+: berapa kali skor itu muncul (kumulatif ${ev.kind === 'team' ? esc(preLabel) : 'semua ronde'}).</p>`;
     if (ev.kind === 'team') {
       return `${note}<div class="table-wrap"><table class="rank"><thead><tr><th>Pos</th><th>Kontingen</th><th>Anggota (skor)</th><th>Total</th>${App.countHeads()}${editable ? '<th>Manual</th>' : ''}</tr></thead><tbody>
         ${rows.map((r) => `<tr class="${rowCls(r)}">${rankCell(r)}
@@ -85,8 +85,7 @@
 
   // Kolom tambahan kartu pairing: total ronde sebelumnya, jumlah berjalan, dan angka kumulatif.
   function rowExtras(ev, ri, id) {
-    const pre = St.prelimRounds(ev);
-    const cntRounds = pre.includes(ri) ? pre.filter((i) => i <= ri) : pre;
+    const cntRounds = Array.from({ length: ri + 1 }, (_, i) => i); // kumulatif sampai ronde ini
     const sum = (i) => St.sumScore(St.score(ev, i, id), ev.config.rounds[i].gates);
     const prev = Array.from({ length: ri }, (_, i) => sum(i));
     const cur = sum(ri);

@@ -129,7 +129,6 @@
     const rcs = ev.config.rounds;
     const upto = uptoRound ?? rcs.length;
     const groupSets = d.rounds.map((r) => new Set(r.groups.flatMap((g) => g.entryIds)));
-    const pre = St.prelimRounds(ev);
     const rows = App.entriesOf(ev.id).map((entry) => {
       const rounds = [];
       let total = 0, played = 0, ob = 0, reached = 0;
@@ -144,7 +143,7 @@
         if (rcs[ri].cut && !groupSets[ri].has(entry.id) && rounds[ri].played === 0) reached = Math.min(reached, ri - 1);
       }
       const expected = rcs.slice(0, reached + 1).reduce((s, r) => s + r.gates, 0);
-      const counts = St.counts(rounds.filter((_, i) => pre.includes(i)).flatMap((x) => x.gates));
+      const counts = St.counts(rounds.flatMap((x) => x.gates)); // kumulatif semua ronde (R1 + R2 + Final)
       return { entry, rounds, total, played, ob, reached, counts, complete: played >= expected && played > 0 };
     });
     // Peserta yang lolos ke ronde cut selalu di atas yang tidak lolos; yang belum main paling bawah.

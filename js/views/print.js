@@ -116,7 +116,6 @@
     const E = App.S.event;
     const rcs = ris.map((i) => ev.config.rounds[i]);
     const done = St.prelimDone(ev);
-    const pre = St.prelimRounds(ev);
     const cutRc = ev.config.rounds.find((rc) => rc.cut);
     let rows = St.ranking(ev).filter((r) => r.played > 0 || St.inGroups(ev, 0).has(r.entry.id));
     if (!done) {
@@ -151,7 +150,7 @@
         const sums = ris.map((ri, k) => { const s = r.rounds[ri]; return `<td class="c${k ? '' : ' rs'}">${s && s.played ? s.sum : '-'}</td>`; }).join('');
         const tot = ris.reduce((s, ri) => s + (r.rounds[ri] ? r.rounds[ri].sum : 0), 0);
         return `<tr class="${cut.trim()}"><td class="c">${done && r.played ? r.rank : '-'}</td><td class="nm">${esc(App.entryName(r.entry))}</td><td>${esc(App.kShort(r.entry.kontingenId))}</td>
-          ${gates}${sums}<td class="c tot">${r.played ? tot : '-'}</td>${App.countCells(r.counts)}</tr>`;
+          ${gates}${sums}<td class="c tot">${r.played ? tot : '-'}</td>${App.countCells(St.counts(ris.flatMap((ri) => (r.rounds[ri] ? r.rounds[ri].gates : []))))}</tr>`;
       }).join('');
       return `<section class="page sheet combo" style="--rowh:${rowH.toFixed(2)}mm;--fs:${font.toFixed(1)}pt">${kop('STROKE COMPETITION · REKAP SKOR')}
         <div class="info"><span>Kategori: <b>${esc(ev.name)}</b></span><span>Ronde: <b>${esc(label)}</b></span><span>Peserta: <b>${rows.length}</b></span>
@@ -159,10 +158,10 @@
           <span>${done ? 'Urut menurut peringkat' : 'Penyisihan belum selesai: urut menurut pairing'}</span></div>
         <table class="pt sheet-table combo-table"><colgroup><col style="width:8mm"><col style="width:34mm"><col style="width:16mm">${Array.from({ length: nGates }, () => `<col style="width:${gateW.toFixed(2)}mm">`).join('')}${rcs.map(() => '<col style="width:8mm">').join('')}<col style="width:8mm">${Array.from({ length: 5 }, () => '<col style="width:5.5mm">').join('')}</colgroup>
           <thead>
-            <tr><th rowspan="2">Pos</th><th rowspan="2">Nama</th><th rowspan="2">Kab</th>${rcs.map((rc) => `<th class="rs" colspan="${rc.gates}">${esc(rc.name)}</th>`).join('')}<th class="rs" colspan="${rcs.length + 1}">Total</th><th class="rs" colspan="5">Kumulatif ${esc(pre.map((i) => short(ev.config.rounds[i].name)).join('+'))}</th></tr>
+            <tr><th rowspan="2">Pos</th><th rowspan="2">Nama</th><th rowspan="2">Kab</th>${rcs.map((rc) => `<th class="rs" colspan="${rc.gates}">${esc(rc.name)}</th>`).join('')}<th class="rs" colspan="${rcs.length + 1}">Total</th><th class="rs" colspan="5">Kumulatif ${esc(ris.map((i) => short(ev.config.rounds[i].name)).join('+'))}</th></tr>
             <tr>${rcs.map((rc) => Array.from({ length: rc.gates }, (_, gi) => `<th class="${gi === 0 ? 'rs' : ''}">${gi + 1}</th>`).join('')).join('')}${rcs.map((rc, k) => `<th class="${k ? '' : 'rs'}">${esc(short(rc.name))}</th>`).join('')}<th>Jml</th>${['1', '2', '3', '4', '5+'].map((l, i) => `<th class="${i ? '' : 'rs'}">${l}</th>`).join('')}</tr>
           </thead><tbody>${body}</tbody></table>
-        <p class="note">${cutRc && done ? `Garis tebal: batas ${cutRc.cut} besar yang lolos ke ${esc(cutRc.name)}. ` : ''}Kumulatif: berapa kali skor 1, 2, 3, 4, dan 5+ muncul di ronde penyisihan.</p>
+        <p class="note">${cutRc && done ? `Garis tebal: batas ${cutRc.cut} besar yang lolos ke ${esc(cutRc.name)}. ` : ''}Kumulatif: berapa kali skor 1, 2, 3, 4, dan 5+ muncul di ronde yang ditampilkan.</p>
         <div class="signs end">${signBox(E.resultSigner.title, E.resultSigner.name, true)}</div>
       </section>`;
     }).join('');
@@ -250,10 +249,8 @@
           }).join('')}</tbody></table>`;
       } else {
         const rcs = ev.config.rounds;
-        const preLabel = St.prelimRounds(ev).map((i) => rcs[i].name).join(' + ');
         body = `<table class="pt"><thead><tr><th>Pos</th><th>Nama</th><th>Kab/Kota</th>${rcs.map((r) => `<th>${esc(r.name)}</th>`).join('')}<th>Total</th>${App.countHeads()}<th>Ket.</th></tr></thead><tbody>
-          ${rows.map((r) => `<tr><td class="c">${r.rank}</td><td>${esc(App.entryName(r.entry))}</td><td>${esc(App.kName(r.entry.kontingenId))}</td>${r.rounds.map((x) => `<td class="c">${x.played ? x.sum : '-'}</td>`).join('')}<td class="c"><b>${r.total}</b></td>${App.countCells(r.counts)}<td>${medalOf(r.rank)}</td></tr>`).join('')}</tbody></table>
-          <p class="note">Kolom 1 sampai 5+: berapa kali skor itu muncul di ${esc(preLabel)}. Penentuan jika jumlah pukulan sama: ${(ev.config.tiebreak || []).map((k) => esc(St.TIEBREAKS[k])).join(' → ')}.</p>`;
+          ${rows.map((r) => `<tr><td class="c">${r.rank}</td><td>${esc(App.entryName(r.entry))}</td><td>${esc(App.kName(r.entry.kontingenId))}</td>${r.rounds.map((x) => `<td class="c">${x.played ? x.sum : '-'}</td>`).join('')}<td class="c"><b>${r.total}</b></td>${App.countCells(r.counts)}<td>${medalOf(r.rank)}</td></tr>`).join('')}</tbody></table>`;
       }
     } else {
       const pl = Fw.placements(ev).list;
