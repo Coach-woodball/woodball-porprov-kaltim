@@ -38,6 +38,12 @@
   function migrate(s) {
     const d = App.defaultState();
     s.event = Object.assign({}, d.event, s.event || {});
+    const OLD_CERT = {
+      certBody: 'Sebagai JUARA {juara} ({medali}) Nomor {nomor} pada Cabang Olahraga Woodball {event} yang dilaksanakan pada tanggal {tanggal} di {kota}.',
+      certPartBody: 'Sebagai PESERTA Nomor {nomor} pada Cabang Olahraga Woodball {event} yang dilaksanakan pada tanggal {tanggal} di {kota}.',
+      certOfficialBody: 'Sebagai {peran} Kontingen {kontingen} pada Cabang Olahraga Woodball {event} yang dilaksanakan pada tanggal {tanggal} di {kota}.',
+    };
+    Object.keys(OLD_CERT).forEach((k) => { if (s.event[k] === OLD_CERT[k]) s.event[k] = d.event[k]; });
     s.menu = Object.assign({}, d.menu, s.menu || {});
     s.validation = Object.assign({}, d.validation, s.validation || {});
     ['kontingen', 'athletes', 'events', 'entries'].forEach((k) => (s[k] = s[k] || d[k]));

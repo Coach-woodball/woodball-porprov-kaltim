@@ -580,8 +580,8 @@ table.team-gates tr.tg-team td { border-top: 2px solid var(--line); }
 .c2-card { flex: 1; min-width: 0; display: flex; flex-direction: column; box-sizing: border-box; border-radius: 28px; padding: 40px 52px 36px;
   background: rgba(255, 255, 255, .6); border: 1px solid rgba(255, 255, 255, .9); box-shadow: 0 24px 60px rgba(16, 60, 35, .16), inset 0 1px 0 rgba(255, 255, 255, .95); }
 .c2-head { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-.c2-logos { display: flex; align-items: center; gap: 14px; padding: 8px 16px; border-radius: 999px; background: rgba(255, 255, 255, .72); border: 1px solid rgba(255, 255, 255, .95); box-shadow: 0 6px 18px rgba(16, 60, 35, .1); }
-.c2-logos img { height: 44px; width: auto; max-width: 110px; object-fit: contain; }
+.c2-logos { display: flex; align-items: center; gap: 20px; padding: 10px 22px; border-radius: 999px; background: rgba(255, 255, 255, .72); border: 1px solid rgba(255, 255, 255, .95); box-shadow: 0 6px 18px rgba(16, 60, 35, .1); }
+.c2-logos img { height: 76px; width: auto; max-width: 170px; object-fit: contain; }
 .c2-org { text-align: right; font-size: 11px; font-weight: 600; letter-spacing: .18em; line-height: 1.6; text-transform: uppercase; color: #3f5a4b; }
 .c2-mid { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 20px 0; }
 .c2-top { display: flex; gap: 48px; align-items: center; }

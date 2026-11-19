@@ -200,7 +200,7 @@
   };
 
   // ---------- Atlet ----------
-  let athFilter = { k: '', g: '', q: '' };
+  let athFilter = { k: '', g: '', ev: '', q: '' };
   let editId = null;
 
   const evChecks = (gender, selected) => {
@@ -237,7 +237,7 @@
     render() {
       const S = App.S;
       const q = athFilter.q.toLowerCase();
-      const list = S.athletes.filter((a) => (!athFilter.k || a.kontingenId === athFilter.k) && (!athFilter.g || a.gender === athFilter.g) && (!q || a.name.toLowerCase().includes(q)))
+      const list = S.athletes.filter((a) => (!athFilter.k || a.kontingenId === athFilter.k) && (!athFilter.g || a.gender === athFilter.g) && (!athFilter.ev || (a.events || []).includes(athFilter.ev)) && (!q || a.name.toLowerCase().includes(q)))
         .sort((a, b) => App.kName(a.kontingenId).localeCompare(App.kName(b.kontingenId)) || a.gender.localeCompare(b.gender) || a.name.localeCompare(b.name));
       const inEntries = {};
       S.entries.forEach((e) => e.members.forEach((m) => m && (inEntries[m] = (inEntries[m] || []).concat(App.event(e.eventId)?.code || '?'))));
@@ -259,7 +259,9 @@
           <div class="row gap wrap filters">
             <select id="f-k">${App.ui.options([['', 'Semua kontingen'], ...S.kontingen.map((k) => [k.id, k.name])], athFilter.k)}</select>
             <select id="f-g">${App.ui.options([['', 'Putra & Putri'], ['L', 'Putra'], ['P', 'Putri']], athFilter.g)}</select>
+            <select id="f-ev">${App.ui.options([['', 'Semua nomor tanding'], ...S.events.map((e) => [e.id, `${e.code} · ${e.name}`])], athFilter.ev)}</select>
             <input id="f-q" placeholder="Cari nama…" value="${esc(athFilter.q)}">
+            ${athFilter.k || athFilter.g || athFilter.ev || athFilter.q ? `<span class="muted small">${list.length} atlet cocok</span>` : ''}
           </div>
           <details class="legend-wrap"><summary class="muted small">Arti kode nomor</summary>${App.eventLegend()}</details>
           <div class="table-wrap"><table><thead><tr><th>#</th><th>Nama</th><th>L/P</th><th>Kontingen</th><th>Daftar nomor</th><th>Masuk entri</th><th></th></tr></thead><tbody>
@@ -295,9 +297,10 @@
         App.S.entries.forEach((e) => (e.members = e.members.map((m) => (m === a.id ? null : m))));
         App.commit('Atlet dihapus');
       }));
-      const refilter = () => { athFilter = { k: root.querySelector('#f-k').value, g: root.querySelector('#f-g').value, q: root.querySelector('#f-q').value }; App.rerender(); };
+      const refilter = () => { athFilter = { k: root.querySelector('#f-k').value, g: root.querySelector('#f-g').value, ev: root.querySelector('#f-ev').value, q: root.querySelector('#f-q').value }; App.rerender(); };
       root.querySelector('#f-k').addEventListener('change', refilter);
       root.querySelector('#f-g').addEventListener('change', refilter);
+      root.querySelector('#f-ev').addEventListener('change', refilter);
       root.querySelector('#f-q').addEventListener('change', refilter);
       root.querySelector('#ath-import-toggle').addEventListener('click', () => root.querySelector('#ath-import').classList.toggle('hidden'));
       root.querySelector('#ath-import-go').addEventListener('click', () => {

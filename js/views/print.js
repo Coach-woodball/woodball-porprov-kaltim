@@ -320,7 +320,7 @@
     out.forEach((c, i) => (c.no = certNo(i + 1)));
     return out;
   };
-  App.certLabel = (c) => (c.type === 'juara' ? `Juara ${App.ROMAWI[c.rank]} (${App.MEDAL[c.rank]}) · ${c.ev.name}`
+  App.certLabel = (c) => (c.type === 'juara' ? `Juara ${c.rank} (${App.MEDAL[c.rank]}) · ${c.ev.name}`
     : c.type === 'peserta' ? `Peserta · ${c.evs.map((e) => e.name).join(', ')}` : `${c.role} kontingen`);
 
   const verifyUrl = (no) => location.href.split('#')[0].split('?')[0] + '#/verifikasi/' + encodeURIComponent(no);
@@ -337,12 +337,12 @@
     const nomor = c.type === 'juara' ? c.ev.name : c.type === 'peserta' ? c.evs.map((e) => e.name).join(', ') : '';
     const fill = (t) => (t || '').replace(/\{(\w+)\}/g, (_, k) => ({
       nama: c.name, kontingen: App.kName(c.kontingenId), nomor, peran: (c.role || '').toUpperCase(),
-      juara: c.rank ? App.ROMAWI[c.rank] : '', medali: c.rank ? App.MEDAL[c.rank] : '', event: E.title,
+      juara: c.rank ? String(c.rank) : '', medali: c.rank ? App.MEDAL[c.rank] : '', event: E.title,
       tanggal: App.fmtDateRange(E.dateStart, E.dateEnd), kota: E.city,
     }[k] ?? `{${k}}`));
     const body = fill(c.type === 'juara' ? E.certBody : c.type === 'peserta' ? E.certPartBody : E.certOfficialBody);
     const tier = c.type === 'juara' ? TIER[c.rank] : c.type === 'peserta' ? 'part' : 'off';
-    const badge = c.type === 'juara' ? `Juara ${App.ROMAWI[c.rank]} · Medali ${App.MEDAL[c.rank]}` : c.type === 'peserta' ? 'Peserta' : c.role;
+    const badge = c.type === 'juara' ? `Juara ${c.rank} · Medali ${App.MEDAL[c.rank]}` : c.type === 'peserta' ? 'Peserta' : c.role;
     const logos = (E.logos || []).map((id) => App.files.url(id)).filter(Boolean);
     // Desain kaca F4: satu panel kaca di atas latar bercahaya hijau-merah; lencana bulat hanya untuk peringkat juara.
     return `<section class="page cert2 ${tier}"><div class="c2-card">
@@ -356,9 +356,9 @@
           <div class="c2-intro">${esc(E.certIntro)}</div>
           <div class="c2-name">${esc(c.name)}</div>
           <div class="c2-k">Kontingen ${esc(App.kName(c.kontingenId))}</div>
-        </div>${c.type === 'juara' ? `<div class="c2-medal-ring"><b>${App.ROMAWI[c.rank]}</b><span>${esc(App.MEDAL[c.rank])}</span></div>` : ''}</div>
+        </div>${c.type === 'juara' ? `<div class="c2-medal-ring"><b>${c.rank}</b><span>${esc(App.MEDAL[c.rank])}</span></div>` : ''}</div>
         <div class="c2-tags"><span class="c2-chip c2-role">${esc(badge)}</span>${c.type === 'juara' ? `<span class="c2-chip">${esc(c.ev.name)}</span>` : ''}</div>
-        <p class="c2-body">${esc(body)}</p>
+        <p class="c2-body">${esc(body).replace(/\n/g, '<br>')}</p>
       </div>
       <div class="c2-foot">
         <div class="c2-signs"><div class="c2-date">${signDate()}</div><div class="c2-signrow">${E.signers.map((s) => signBox(s.title, s.name)).join('')}</div></div>
