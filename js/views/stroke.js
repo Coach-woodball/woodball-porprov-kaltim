@@ -175,6 +175,8 @@
       }));
       bindManual();
       if (ev.kind === 'team' && !ev.config.own) return;
+      // Pairing lama yang masih berisi pemain yang sudah diganti di Nomor & Entri ikut diperbarui.
+      if (St.syncTeamGroups(ev)) { App.commit('Pairing Team Stroke disesuaikan dengan anggota tim'); return; }
       const ri = Math.min(+(params[1] || 0), ev.config.rounds.length - 1);
       const rc = ev.config.rounds[ri];
       const r = St.data(ev).rounds[ri];

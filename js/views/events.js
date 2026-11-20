@@ -212,6 +212,7 @@
     root.querySelectorAll('[data-member]').forEach((sel) => sel.addEventListener('change', () => {
       const [eid, s] = sel.dataset.member.split(':');
       App.entry(eid).members[+s] = sel.value || null;
+      App.stroke.syncTeamGroups(ev); // pairing Team Stroke ikut berganti pemain
       App.commit();
     }));
     root.querySelectorAll('[data-edel]').forEach((b) => b.addEventListener('click', async () => {

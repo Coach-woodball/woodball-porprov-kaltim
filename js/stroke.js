@@ -66,6 +66,30 @@
     ? App.entriesOf(ev.id).flatMap((e) => e.members.filter(Boolean))
     : App.entriesOf(ev.id).map((e) => e.id));
 
+  // Team Stroke dimainkan sendiri: pairing berisi atlet. Kalau anggota tim diganti, pemain lama di pairing
+  // digantikan pemain baru dari kontingen yang sama di posisi yang sama; pemain yang sudah keluar dari tim dihapus.
+  // Mengembalikan true kalau ada yang berubah.
+  St.syncTeamGroups = (ev) => {
+    if (ev.kind !== 'team' || !ev.config.own) return false;
+    const units = new Set(St.units(ev));
+    const kOf = (id) => (App.athlete(id) || {}).kontingenId;
+    let changed = false;
+    St.data(ev).rounds.forEach((r) => {
+      if (!r.groups.length) return;
+      const inGroups = new Set(r.groups.flatMap((g) => g.entryIds));
+      const missing = [...units].filter((id) => !inGroups.has(id));
+      r.groups.forEach((g) => {
+        g.entryIds = g.entryIds.map((id) => {
+          if (units.has(id)) return id;
+          changed = true;
+          const i = missing.findIndex((m) => kOf(m) === kOf(id));
+          return i < 0 ? null : missing.splice(i, 1)[0];
+        }).filter(Boolean);
+      });
+    });
+    return changed;
+  };
+
   St.participants = (ev, ri) => {
     const d = St.data(ev);
     const r = d.rounds[ri];
