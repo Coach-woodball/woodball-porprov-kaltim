@@ -34,8 +34,8 @@
     if (ev.discipline === 'stroke') return html + App.pairingPublicHtml(ev) + App.strokeRankingTable(ev) + (ev.kind === 'team' ? `<h4>Skor per gate</h4>${App.scoreLegend()}${App.teamGateTable(ev)}` : '');
     const d = Fw.data(ev);
     if (Fw.koMatches(ev).length) html += `<h4>Bagan</h4>${App.bracketHtml(ev, link)}`;
-    d.groups.forEach((g) => { html += `<h4>Grup ${esc(g.name)}</h4>${App.standingsTable(ev, g)}${App.matchListHtml(ev, Fw.groupMatches(ev, g.id), link)}`; });
-    if (Fw.koMatches(ev).length) html += `<h4>Pertandingan bagan</h4>${App.matchListHtml(ev, Fw.koMatches(ev), link)}`;
+    d.groups.forEach((g) => { html += `<h4>Grup ${esc(g.name)}</h4>${App.standingsTable(ev, g)}${App.fwMatchList(ev, Fw.groupMatches(ev, g.id), link)}`; });
+    if (Fw.koMatches(ev).length) html += `<h4>Pertandingan bagan</h4>${App.fwMatchList(ev, Fw.koMatches(ev), link)}`;
     if (!d.matches.length) html += App.ui.empty('Pertandingan belum diundi.');
     return html;
   };
@@ -74,7 +74,7 @@
       } else {
         const d = Fw.data(ev);
         if (Fw.koMatches(ev).length) list.push({ title: ev.name + ' · Bagan', html: App.bracketHtml(ev, false) });
-        d.groups.forEach((g) => list.push({ title: `${ev.name} · Grup ${g.name}`, html: App.standingsTable(ev, g) + App.matchListHtml(ev, Fw.groupMatches(ev, g.id), false) }));
+        d.groups.forEach((g) => list.push({ title: `${ev.name} · Grup ${g.name}`, html: App.standingsTable(ev, g) + App.fwMatchList(ev, Fw.groupMatches(ev, g.id), false) }));
       }
     });
     if (p.medals !== false) list.push({ title: 'Klasemen Medali', html: App.medalTableHtml(App.medalTally().rows) });

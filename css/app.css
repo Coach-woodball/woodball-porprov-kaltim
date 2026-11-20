@@ -767,3 +767,30 @@ table.team-gates td.tsub { color: var(--muted); }
 .ps-admin { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; border: 1px dashed var(--line); }
 .ps-admin > div { display: grid; gap: 2px; }
 .ps-admin.on { border-style: solid; border-color: color-mix(in srgb, var(--brand) 45%, transparent); }
+
+/* Pertandingan Team Fairway: 3 partai bersamaan */
+.tm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; margin: 12px 0; }
+.tm-box { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; background: var(--card, var(--input)); display: flex; flex-direction: column; gap: 8px; }
+.tm-box.done { border-color: var(--accent); }
+.tm-head { display: flex; justify-content: space-between; gap: 8px; font-size: .8rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .03em; }
+.tm-teams { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; font-size: 1.05rem; }
+.tm-teams > span:last-child { text-align: right; }
+.tm-teams .win b { color: var(--accent); }
+.tm-teams .win b::after { content: ' ✓'; }
+.tm-score { font-weight: 800; font-size: 1.2rem; text-align: center; }
+.tm-games { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.tm-games td { padding: 5px 4px; border-top: 1px solid var(--line); vertical-align: middle; }
+.tm-games td:nth-child(4) { text-align: right; }
+.tm-games td.win { font-weight: 700; color: var(--accent); }
+.tm-lbl { white-space: nowrap; width: 1%; }
+.tm-lbl small { display: block; color: var(--muted); }
+.tm-gs { white-space: nowrap; color: var(--muted); width: 1%; }
+.tm-foot { display: flex; justify-content: space-between; align-items: center; }
+label.tm-edit { display: inline-flex; flex-direction: row; align-items: center; gap: 4px; font-size: .75rem; color: var(--muted); text-transform: none; font-weight: 600; }
+label.tm-edit input.tiny { width: 54px; padding: 2px 6px; min-height: 0; height: 26px; }
+.tm-lbl label.tm-edit { display: flex; margin-top: 2px; }
+.tm-sel { display: flex; flex-direction: column; gap: 4px; }
+.tm-games td:nth-child(4) .tm-sel { align-items: flex-end; }
+select.tm-pl { font-size: .8rem; padding: 3px 6px; min-height: 0; height: 30px; width: 100%; max-width: 190px; }
+select.tm-pl.dup { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+@media (max-width: 480px) { .tm-grid { grid-template-columns: 1fr; } }

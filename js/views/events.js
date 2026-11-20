@@ -211,6 +211,7 @@
     }));
     root.querySelectorAll('[data-member]').forEach((sel) => sel.addEventListener('change', () => {
       const [eid, s] = sel.dataset.member.split(':');
+      if (ev.discipline === 'fairway' && ev.kind === 'team') App.fairway.freezeLineup(ev, eid);
       App.entry(eid).members[+s] = sel.value || null;
       App.stroke.syncTeamGroups(ev); // pairing Team Stroke ikut berganti pemain
       App.commit();

@@ -263,7 +263,8 @@
       <div class="draw-head"><div><div class="draw-title">🎡 ${esc(title)}</div>${sub ? `<div class="muted">${esc(sub)}</div>` : ''}</div>
         <div class="row gap"><span class="draw-status pill live">Siap diputar</span>
           <button class="btn sm ghost" data-sound title="Suara">${sound ? '🔊' : '🔇'}</button>
-          <button class="btn sm ghost" data-full title="Layar penuh">⛶</button></div></div>
+          <button class="btn sm ghost" data-full title="Layar penuh">⛶</button>
+          <button class="btn sm ghost" data-exit title="Keluar (hasil undian tetap tersimpan)">✕ Keluar</button></div></div>
       <div class="wheel-body">
         <div class="wheel-side">
           <div class="wheel-wrap"><canvas class="wheel"></canvas><div class="wheel-pin"></div><div class="wheel-hub"></div></div>
@@ -426,11 +427,19 @@
       if (document.fullscreenElement) document.exitFullscreen?.(); else el.requestFullscreen?.().catch(() => {});
     });
     $('[data-skip]').addEventListener('click', finish);
-    $('[data-close]').addEventListener('click', () => {
+    // Keluar kapan saja: hasil undian sudah ditentukan sejak awal, jadi tetap disimpan.
+    const close = () => {
+      if (el.classList.contains('out')) return;
+      if (!done) finish();
       if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
       el.classList.add('out');
+      document.removeEventListener('keydown', onKey);
       setTimeout(() => { el.remove(); resolve(); }, 200);
-    });
+    };
+    const onKey = (e) => { if (e.key === 'Escape' && !document.fullscreenElement) close(); };
+    document.addEventListener('keydown', onKey);
+    $('[data-close]').addEventListener('click', close);
+    $('[data-exit]').addEventListener('click', close);
     const onResize = () => { W = size(); draw(); };
     window.addEventListener('resize', onResize);
     requestAnimationFrame(() => { W = size(); fillByes(); draw(); status(); });

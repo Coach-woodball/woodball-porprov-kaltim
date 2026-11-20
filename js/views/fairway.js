@@ -36,6 +36,50 @@
         ${link ? `<td>${r.a && r.b && r.status !== 'bye' ? `<a class="btn sm" href="#/match/${ev.id}/${m.id}">Input</a>` : ''}</td>` : ''}</tr>`;
     }).join('')}</tbody></table></div>`;
 
+  // Pertandingan tim: satu kotak per pertandingan, berisi 3 partai yang dimainkan bersamaan di lapangan masing-masing.
+  App.teamMatchCards = (ev, matches, link, edit) => {
+    const list = matches.filter((m) => { const r = Fw.matchResult(ev, m); return !(r.a === 'BYE' || r.b === 'BYE'); });
+    if (!list.length) return '';
+    return `<div class="tm-grid">${list.map((m) => {
+      const r = Fw.matchResult(ev, m);
+      const [x, y] = Fw.flip(r) ? ['b', 'a'] : ['a', 'b'];
+      const team = (s) => (r[s] ? `<b>${esc(App.kShort(App.entry(r[s])?.kontingenId))}</b>` : '<span class="muted">menunggu</span>');
+      const info = [m.date ? App.fmtDate?.(m.date) || m.date : '', m.time ? 'Jam ' + m.time : ''].filter(Boolean).map(esc).join(' · ');
+      const can = link && r.a && r.b;
+      // Admin memilih pemain per partai di setiap putaran (susunan bisa berbeda tiap pertandingan).
+      const cell = (s, g) => (!r[s] ? '-' : edit && r[s] !== 'BYE'
+        ? `<div class="tm-sel">${g.slots.map((si) => playerSelect(ev, m, r[s], si)).join('')}</div>`
+        : esc(Fw.gamePlayers(ev, r[s], g, m)));
+      return `<div class="tm-box ${r.status}">
+        <div class="tm-head"><span>${esc(Fw.stageLabel(ev, m))}</span>${edit ? `<label class="tm-edit">Jam <input class="tiny" data-tm-time="${m.id}" value="${esc(m.time || '')}" placeholder="08.00"></label>` : `<span class="muted small">${info}</span>`}</div>
+        <div class="tm-teams"><span class="${r.winner === x ? 'win' : ''}">${team(x)}</span><span class="tm-score">${r.status === 'none' ? 'vs' : (x === 'a' ? r.sa + ' - ' + r.sb : r.sb + ' - ' + r.sa)}</span><span class="${r.winner === y ? 'win' : ''}">${team(y)}</span></div>
+        <table class="tm-games"><tbody>${m.games.map((g, gi) => {
+          const gr = r.games[gi] || {};
+          const lane = g.lane || m.lane;
+          const sc = gr.status && gr.status !== 'none' ? (x === 'a' ? gr.pa + '-' + gr.pb : gr.pb + '-' + gr.pa) : '';
+          return `<tr><td class="tm-lbl"><b>${esc(g.label)}</b>${edit ? `<label class="tm-edit">Lap. <input class="tiny" data-tm-lane="${m.id}:${gi}" value="${esc(g.lane || '')}" placeholder="${esc(m.lane || '')}"></label>` : lane ? `<small>Lap. ${esc(lane)}</small>` : ''}</td>
+            <td class="${gr.winner === x ? 'win' : ''}">${cell(x, g)}</td><td class="c tm-gs">${sc || 'vs'}</td>
+            <td class="${gr.winner === y ? 'win' : ''}">${cell(y, g)}</td></tr>`;
+        }).join('')}</tbody></table>
+        <div class="tm-foot">${App.ui.statusPill(r.status)}${can ? `<a class="btn sm" href="#/match/${ev.id}/${m.id}">Input</a>` : ''}</div>
+      </div>`;
+    }).join('')}</div>`;
+  };
+  App.fwMatchList = (ev, matches, link, edit) => (ev.kind === 'team' ? App.teamMatchCards(ev, matches, link, edit) : App.matchListHtml(ev, matches, link));
+
+  // Pilihan pemain satu tim di satu partai: anggota tim lebih dulu, lalu atlet lain dari kontingen yang sama.
+  function playerSelect(ev, m, entryId, slot) {
+    const e = App.entry(entryId);
+    if (!e) return '-';
+    const cur = Fw.matchLineup(m, entryId);
+    const roster = e.members.filter(Boolean);
+    const others = App.eligibleAthletes(ev, e.kontingenId).filter((a) => !roster.includes(a.id));
+    const dup = cur[slot] && cur.indexOf(cur[slot]) !== slot;
+    const opt = (id) => `<option value="${id}" ${id === cur[slot] ? 'selected' : ''}>${esc(App.athName(id))}</option>`;
+    return `<select class="tm-pl ${dup ? 'dup' : ''}" data-tm-pl="${m.id}:${entryId}:${slot}" title="${dup ? 'Pemain ini sudah main di partai lain' : ''}"><option value="">-</option>
+      <optgroup label="Tim">${roster.map(opt).join('')}</optgroup>${others.length ? `<optgroup label="Atlet lain">${others.map((a) => opt(a.id)).join('')}</optgroup>` : ''}</select>`;
+  }
+
   App.bracketHtml = (ev, link) => {
     const rounds = Fw.koRounds(ev);
     if (!rounds.length) return App.ui.empty('Bagan belum dibuat.');
@@ -136,10 +180,10 @@
 
       d.groups.forEach((g) => {
         html += `<div class="card"><div class="row between"><h3>Grup ${esc(g.name)}</h3>${Fw.groupDone(ev, g.id) ? '<span class="pill ok">Grup selesai</span>' : ''}</div>
-          ${App.standingsTable(ev, g, { editable: true })}${App.matchListHtml(ev, Fw.groupMatches(ev, g.id), true)}</div>`;
+          ${App.standingsTable(ev, g, { editable: true })}${App.fwMatchList(ev, Fw.groupMatches(ev, g.id), true, true)}</div>`;
       });
       if (Fw.koMatches(ev).length) {
-        html += `<div class="card"><h3>Bagan</h3>${App.bracketHtml(ev, true)}<h4>Daftar pertandingan bagan</h4>${App.matchListHtml(ev, Fw.koMatches(ev), true)}</div>`;
+        html += `<div class="card"><h3>Bagan</h3>${App.bracketHtml(ev, true)}<h4>Daftar pertandingan bagan</h4>${App.fwMatchList(ev, Fw.koMatches(ev), true, true)}</div>`;
       }
       return html;
     },
@@ -158,6 +202,26 @@
           boxes: r1.map((m, i) => { const r = Fw.matchResult(ev, m); return { label: 'Partai ' + (i + 1), items: [lab(r.a), lab(r.b)] }; }),
         }).then(() => { App.flash = 'bracket'; App.commit(msg); });
       };
+      root.querySelectorAll('[data-tm-pl]').forEach((sel) => sel.addEventListener('change', () => {
+        const [mid, eid, si] = sel.dataset.tmPl.split(':');
+        const m = Fw.match(ev, mid);
+        m.lineup = m.lineup || {};
+        m.lineup[eid] = Fw.matchLineup(m, eid).slice();
+        m.lineup[eid][+si] = sel.value || null;
+        App.save();
+        // tandai pemain yang dipilih dua kali dalam satu tim di pertandingan ini
+        const cur = m.lineup[eid];
+        sel.closest('.tm-box').querySelectorAll(`[data-tm-pl^="${mid}:${eid}:"]`).forEach((x) => {
+          const k = +x.dataset.tmPl.split(':')[2];
+          x.classList.toggle('dup', !!cur[k] && cur.indexOf(cur[k]) !== k);
+        });
+      }));
+      root.querySelectorAll('[data-tm-time]').forEach((inp) => inp.addEventListener('change', () => { Fw.match(ev, inp.dataset.tmTime).time = inp.value.trim(); App.save(); }));
+      root.querySelectorAll('[data-tm-lane]').forEach((inp) => inp.addEventListener('change', () => {
+        const [mid, gi] = inp.dataset.tmLane.split(':');
+        Fw.match(ev, mid).games[+gi].lane = inp.value.trim();
+        App.save();
+      }));
       const hasScores = () => d.matches.some((m) => Fw.matchResult(ev, m).status === 'done' || Fw.matchResult(ev, m).status === 'live');
       root.querySelectorAll('[data-ggen]').forEach((b) => b.addEventListener('click', async () => {
         if (d.groups.length && !(await App.ask(hasScores() ? 'PERHATIAN: sudah ada skor. Undi ulang akan MENGHAPUS semua pertandingan grup & skornya. Lanjut?' : 'Undi ulang grup?'))) return;
@@ -247,10 +311,11 @@
       const v = side === 0 ? x : y;
       return `<td class="sdc"><input class="sc" inputmode="numeric" maxlength="2" data-x="${gi}:${i}:${side}" value="${v ?? ''}"></td>`;
     }).join('');
-    const nameA = Fw.gamePlayers(ev, r.a, g), nameB = Fw.gamePlayers(ev, r.b, g);
+    const nameA = Fw.gamePlayers(ev, r.a, g, m), nameB = Fw.gamePlayers(ev, r.b, g, m);
     return `<div class="card game" data-gi="${gi}">
       <div class="row between wrap"><h3>${g.label ? esc(g.label) + ' · ' : ''}<span data-gres="${gi}">${gr.pa} - ${gr.pb}</span> ${App.ui.statusPill(gr.status)}</h3>
-        <label class="mini">Pemenang manual / WO<select data-gov="${gi}">${App.ui.options([['', 'Otomatis dari skor'], ['a', 'Menang: ' + nameA], ['b', 'Menang: ' + nameB]], g.override || '')}</select></label></div>
+        <div class="row gap wrap">${ev.kind === 'team' ? `<label class="mini">Lapangan<input class="tiny" data-glane="${gi}" value="${esc(g.lane || '')}" placeholder="${esc(m.lane || '')}"></label>` : ''}
+        <label class="mini">Pemenang manual / WO<select data-gov="${gi}">${App.ui.options([['', 'Otomatis dari skor'], ['a', 'Menang: ' + nameA], ['b', 'Menang: ' + nameB]], g.override || '')}</select></label></div></div>
       <div class="table-wrap"><table class="score"><thead><tr><th class="name">Nama</th>${Array.from({ length: N }, (_, i) => `<th>${i + 1}</th>`).join('')}${Array.from({ length: extraN }, (_, i) => `<th class="sdc">PK${i + 1}</th>`).join('')}</tr></thead>
       <tbody><tr><td class="name"><b>${esc(nameA)}</b><small>${esc(App.kShort(App.entry(r.a)?.kontingenId))}</small></td>${cells(0)}</tr>
       <tr><td class="name"><b>${esc(nameB)}</b><small>${esc(App.kShort(App.entry(r.b)?.kontingenId))}</small></td>${cells(1)}</tr></tbody></table></div>
@@ -274,7 +339,7 @@
           <div class="grid4">
             <label>Tanggal<input type="date" data-mf="date" value="${esc(m.date || '')}"></label>
             <label>Jam<input data-mf="time" value="${esc(m.time || '')}" placeholder="08.00"></label>
-            <label>Lapangan<input data-mf="lane" value="${esc(m.lane || '')}"></label>
+            <label>${ev.kind === 'team' ? 'Lapangan (umum)' : 'Lapangan'}<input data-mf="lane" value="${esc(m.lane || '')}"></label>
             <label>Catatan<input data-mf="note" value="${esc(m.note || '')}"></label>
           </div>
           ${ev.kind === 'team' ? `<label class="mini">Pemenang pertandingan (manual)<select data-mov="1">${App.ui.options([['', 'Otomatis (best of ' + m.games.length + ')'], ['a', App.entryName(App.entry(r.a))], ['b', App.entryName(App.entry(r.b))]], m.override || '')}</select></label>` : ''}
@@ -288,6 +353,7 @@
       if (!m) return;
       root.querySelectorAll('[data-mf]').forEach((inp) => inp.addEventListener('change', () => { m[inp.dataset.mf] = inp.value; App.save(); }));
       root.querySelector('[data-mov]')?.addEventListener('change', (e) => { m.override = e.target.value || null; App.commit(); });
+      root.querySelectorAll('[data-glane]').forEach((inp) => inp.addEventListener('change', () => { m.games[+inp.dataset.glane].lane = inp.value.trim(); App.save(); }));
       root.querySelectorAll('[data-gov]').forEach((sel) => sel.addEventListener('change', () => { m.games[+sel.dataset.gov].override = sel.value || null; App.commit(); }));
       // Urutan isi: gate per gate (pemain 1 lalu pemain 2), sesuai cara wasit mencatat.
       const keyOf = (inp) => {

@@ -292,11 +292,29 @@
   };
 
   // Nama pemain di partai tim (Tunggal I, Ganda, dst).
-  Fw.gamePlayers = (ev, entryId, game) => {
+  // m (opsional): pertandingan yang sudah berjalan menyimpan susunan pemainnya sendiri (m.lineup).
+  Fw.gamePlayers = (ev, entryId, game, m) => {
     const e = App.entry(entryId);
     if (!e) return entryId === 'BYE' ? 'BYE' : '-';
     if (ev.kind !== 'team' || !game.slots) return App.entryName(e);
-    return game.slots.map((s) => App.athName(e.members[s])).join(' / ');
+    const members = m ? Fw.matchLineup(m, entryId) : e.members;
+    return game.slots.map((s) => App.athName(members[s])).join(' / ');
+  };
+
+  // Susunan pemain tim di satu pertandingan (diatur per putaran), bawaan dari anggota tim.
+  Fw.matchLineup = (m, entryId) => (m.lineup && m.lineup[entryId]) || (App.entry(entryId)?.members || []);
+
+  // Sebelum susunan pemain tim diubah: pertandingan yang sudah ada skornya tetap memakai susunan lama.
+  Fw.freezeLineup = (ev, entryId) => {
+    const e = App.entry(entryId);
+    if (!e) return;
+    Fw.data(ev).matches.forEach((m) => {
+      if (m.lineup && m.lineup[entryId]) return;
+      const r = Fw.matchResult(ev, m);
+      if ((r.a !== entryId && r.b !== entryId) || (r.status !== 'live' && r.status !== 'done')) return;
+      m.lineup = m.lineup || {};
+      m.lineup[entryId] = e.members.slice();
+    });
   };
 
   Fw.progress = (ev) => {

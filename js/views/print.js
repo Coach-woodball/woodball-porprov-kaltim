@@ -188,7 +188,7 @@
     const gr = Fw.gameResult(ev, g);
     const N = ev.config.gates;
     const filled = opts.filled;
-    const nA0 = Fw.gamePlayers(ev, r.a, g), nB0 = Fw.gamePlayers(ev, r.b, g);
+    const nA0 = Fw.gamePlayers(ev, r.a, g, m), nB0 = Fw.gamePlayers(ev, r.b, g, m);
     const sw = filled && gr.played && (gr.pb > gr.pa || (gr.pa === gr.pb && gr.winner === 'b'));
     const order = sw ? [1, 0] : [0, 1]; // order[baris] = sisi data (0 = peserta a, 1 = peserta b)
     const ids = [r.a, r.b], names = [nA0, nB0];
