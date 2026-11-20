@@ -794,3 +794,7 @@ label.tm-edit input.tiny { width: 54px; padding: 2px 6px; min-height: 0; height:
 select.tm-pl { font-size: .8rem; padding: 3px 6px; min-height: 0; height: 30px; width: 100%; max-width: 190px; }
 select.tm-pl.dup { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 @media (max-width: 480px) { .tm-grid { grid-template-columns: 1fr; } }
+
+/* Team Stroke: ganti pemain di baris pairing */
+td.name select.swap { font-weight: 700; font-size: .85rem; padding: 3px 6px; min-height: 0; height: 30px; max-width: 220px; }
+td.name select.swap.dup { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }

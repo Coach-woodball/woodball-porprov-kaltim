@@ -52,6 +52,8 @@
         if (!has(x) || !has(y)) break;
         if (+x !== +y) { winner = +x < +y ? 'a' : 'b'; sd = i + 1; status = 'done'; break; }
       }
+      // Pemenang sudden death mendapat 1 poin, jadi skor tidak tampil seri (mis. 5-5 menjadi 6-5).
+      if (winner === 'a') pa++; else if (winner === 'b') pb++;
     }
     return { pa, pb, even, played, remaining, winner, sd, status };
   };

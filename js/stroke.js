@@ -90,6 +90,23 @@
     return changed;
   };
 
+  // Ganti pemain di pairing nomor tertentu: ronde ini, dan ronde lain yang pairing bernomor sama berisi pemain lama.
+  // Skor ikut pindah ke pemain baru hanya bila pemain lama tidak lagi bermain di ronde itu
+  // (kalau pemain lama juga ada di pairing lain, skornya tetap miliknya; skor pemain baru diisi ulang).
+  St.swapPlayer = (ev, groupNo, slot, oldId, newId, ri) => {
+    St.data(ev).rounds.forEach((r, k) => {
+      const g = r.groups.find((x) => x.no === groupNo);
+      if (!g) return;
+      const pos = k === ri && g.entryIds[slot] === oldId ? slot : g.entryIds.indexOf(oldId);
+      if (pos < 0) return;
+      const other = g.entryIds.indexOf(newId);
+      if (other >= 0) g.entryIds[other] = oldId; // pemain baru sudah di pairing ini: tukar posisi
+      g.entryIds[pos] = newId;
+      const stillIn = r.groups.some((x) => x.entryIds.includes(oldId));
+      if (!stillIn && r.scores[oldId] && !r.scores[newId]) { r.scores[newId] = r.scores[oldId]; delete r.scores[oldId]; }
+    });
+  };
+
   St.participants = (ev, ri) => {
     const d = St.data(ev);
     const r = d.rounds[ri];

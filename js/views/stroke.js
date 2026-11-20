@@ -106,12 +106,12 @@
         <a class="btn sm ghost" href="#/print/scorecard-stroke/${ev.id}/${ri}/${g.id}">🖨️ Score card</a></div></div>
       <div class="table-wrap"><table class="score"><thead><tr><th class="name">Nama</th>${gates.map((i) => `<th>${i + 1}</th>`).join('')}<th class="gate-add"><button class="btn xs ghost" data-gate="-1" title="Kurangi 1 gate untuk ronde ini">− Gate</button><button class="btn xs ghost" data-gate="1" title="Tambah 1 gate untuk ronde ini">+ Gate</button></th><th>Total</th>
         ${prevNames.map((n) => `<th class="prev" title="Total ${esc(n)}">${esc(n)}</th>`).join('')}${ri ? '<th class="prev" title="Jumlah semua ronde sampai ronde ini">Jumlah</th>' : ''}${App.countHeads()}</tr></thead><tbody>
-      ${g.entryIds.map((id) => {
+      ${g.entryIds.map((id, slot) => {
         const e = App.entry(id);
         const sc = St.score(ev, ri, id);
         const s = St.sumScore(sc, rc.gates);
         const x = rowExtras(ev, ri, id);
-        return `<tr><td class="name"><b>${esc(App.entryName(e))}</b><small>${esc(App.kShort(e?.kontingenId))}</small></td>
+        return `<tr><td class="name">${ev.kind === 'team' && ev.config.own ? swapSelect(ev, g, slot, id) : `<b>${esc(App.entryName(e))}</b>`}<small>${esc(App.kShort(e?.kontingenId))}</small></td>
           ${gates.map((i) => `<td><input class="sc ${App.scoreCls(sc.g[i])}" inputmode="numeric" maxlength="2" data-sc="${id}:${i}" value="${sc.g[i] ?? ''}"></td>`).join('')}
           <td class="gate-add"></td>
           <td class="c big" data-total="${id}">${s.played ? s.sum : ''}</td>
@@ -216,6 +216,14 @@
         St.cleanGroups(ev, ri);
         App.save();
       }));
+      root.querySelectorAll('[data-swap]').forEach((sel) => sel.addEventListener('change', () => {
+        const [gid, slot] = sel.dataset.swap.split(':');
+        const g = r.groups.find((x) => x.id === gid);
+        const oldId = g.entryIds[+slot], newId = sel.value;
+        if (!newId || newId === oldId) return;
+        St.swapPlayer(ev, g.no, +slot, oldId, newId, ri);
+        App.commit(`${App.athName(oldId)} diganti ${App.athName(newId)} di pairing ${g.no}`);
+      }));
       root.querySelector('#manual-apply')?.addEventListener('click', () => App.commit('Pairing diperbarui'));
       root.querySelectorAll('[data-glane]').forEach((inp) => inp.addEventListener('change', () => { r.groups.find((g) => g.id === inp.dataset.glane).lane = inp.value; App.save(); }));
       root.querySelectorAll('[data-gtime]').forEach((inp) => inp.addEventListener('change', () => { r.groups.find((g) => g.id === inp.dataset.gtime).time = inp.value; App.save(); }));
@@ -259,6 +267,15 @@
       });
     },
   };
+
+  // Team Stroke: ganti pemain di satu baris pairing dengan anggota tim lain dari kontingen yang sama.
+  function swapSelect(ev, g, slot, id) {
+    const a = App.athlete(id);
+    const team = App.entriesOf(ev.id).find((e) => e.members.includes(id)) || App.entriesOf(ev.id).find((e) => e.kontingenId === a?.kontingenId);
+    const ids = [...new Set([id, ...(team ? team.members.filter(Boolean) : [])])];
+    const dup = g.entryIds.indexOf(id) !== slot || St.data(ev).rounds.some((r) => r.groups.some((x) => x.entryIds.includes(id) && x.id !== g.id && r.groups.includes(g)));
+    return `<select class="swap ${dup ? 'dup' : ''}" data-swap="${g.id}:${slot}" title="${dup ? 'Pemain ini muncul di lebih dari satu pairing' : 'Ganti pemain'}">${ids.map((x) => `<option value="${x}" ${x === id ? 'selected' : ''}>${esc(App.athName(x))}</option>`).join('')}</select>`;
+  }
 
   function manualBox(ev, ri, parts) {
     const r = St.data(ev).rounds[ri];

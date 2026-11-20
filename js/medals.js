@@ -58,6 +58,7 @@
       list.forEach((e) => {
         perK[e.kontingenId] = (perK[e.kontingenId] || 0) + 1;
         const ms = e.members.filter(Boolean);
+        if (new Set(ms).size < ms.length) warn(`${ev.name}: entri ${App.entryLabel(e)} memakai pemain yang sama lebih dari sekali.`);
         if (ms.length < ev.members) warn(`${ev.name}: entri ${App.entryLabel(e)} belum lengkap (${ms.length}/${ev.members} pemain).`);
         ms.forEach((aid) => {
           const a = App.athlete(aid);
