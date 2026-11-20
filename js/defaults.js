@@ -42,17 +42,17 @@
     maxPerKontingen: maxPer,
   });
   const fairwayTeam = () => ({
-    format: 'rr',
-    groupCount: 1,
+    format: 'group_ko',
+    groupCount: 2,
     qualify: 2,
     thirdPlace: 'match',
     winPoints: 2,
     gates: 12,
-    slots: ['Tunggal I', 'Tunggal II', 'Ganda (1)', 'Ganda (2)'],
+    slots: ['Single A', 'Single B', 'Ganda C (1)', 'Ganda C (2)'],
     games: [
-      { label: 'Tunggal I', slots: [0] },
-      { label: 'Ganda', slots: [2, 3] },
-      { label: 'Tunggal II', slots: [1] },
+      { label: 'Single A', slots: [0] },
+      { label: 'Single B', slots: [1] },
+      { label: 'Ganda C', slots: [2, 3] },
     ],
     maxPerKontingen: 1,
   });

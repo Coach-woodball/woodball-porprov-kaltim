@@ -46,6 +46,16 @@
       e.config.groupSize = 4;
       e.config.countBest = 4;
     });
+    // Team Fairway: Single A, Single B, lalu Ganda C, 2 grup + bagan (20 Nov 2026). Hanya bila susunan lama belum diubah admin.
+    s.events.forEach((e) => {
+      const c = e.config;
+      if (e.discipline !== 'fairway' || e.kind !== 'team' || !c || JSON.stringify(c.slots) !== JSON.stringify(['Tunggal I', 'Tunggal II', 'Ganda (1)', 'Ganda (2)'])) return;
+      const dt = App.newEventTemplate('fairway', 'team');
+      c.slots = dt.slots;
+      c.games = dt.games;
+      // 2 grup + bagan (juara & runner-up grup lolos ke semifinal).
+      Object.assign(c, { format: dt.format, groupCount: dt.groupCount, qualify: dt.qualify });
+    });
     const OLD_CERT = {
       certBody: 'Sebagai JUARA {juara} ({medali}) Nomor {nomor} pada Cabang Olahraga Woodball {event} yang dilaksanakan pada tanggal {tanggal} di {kota}.',
       certPartBody: 'Sebagai PESERTA Nomor {nomor} pada Cabang Olahraga Woodball {event} yang dilaksanakan pada tanggal {tanggal} di {kota}.',
