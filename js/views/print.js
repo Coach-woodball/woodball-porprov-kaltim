@@ -32,33 +32,74 @@
   const signDate = () => `${esc(App.S.event.city)}, ${esc(App.fmtDate(opts.date || App.today()))}`;
   const signBox = (title, name, withDate) => `<div class="sign">${withDate ? `<div>${signDate()}</div>` : ''}<div>${esc(title)}</div><div class="sign-space"></div><div class="sign-name">${esc(name || '(....................................)')}</div></div>`;
 
-  // ---------- Score card stroke ----------
-  function tickGrid(max = 12) {
-    return `<div class="tick">${Array.from({ length: max }, (_, i) => `<span>${i + 1}</span>`).join('')}</div>`;
+  // ---------- Score card format panitia (meniru SC STROKE.xlsx / SC FAIRWAY.xlsx) ----------
+  // Tiap gate: 1 kotak skor + kotak angka 1-9 untuk mencoret jumlah pukulan.
+  const bx = (on, label) => `<span class="xb${on ? ' on' : ''}">${on ? '✓' : ''}</span>${esc(label)}`;
+  const boxes = (list, cur) => list.map(([k, l]) => bx(k === cur, l)).join('');
+  const dots = (v) => (v ? `<b>${esc(v)}</b>` : '<span class="xdots"></span>');
+  const laneList = () => String(App.S.event.lanes || 'A, B').split(',').map((s) => s.trim()).filter(Boolean);
+  const laneBoxes = (lane) => {
+    const ls = laneList();
+    const on = ls.find((l) => l.toLowerCase() === String(lane || '').trim().toLowerCase());
+    return boxes(ls.map((l) => [l, l]), on) + (lane && !on ? ` <b>${esc(lane)}</b>` : '');
+  };
+  function scKop(title) {
+    const E = App.S.event;
+    const logos = (E.logos || []).map((id) => App.files.url(id)).filter(Boolean);
+    const left = logos.length > 1 ? logos.slice(0, -1) : logos, right = logos.length > 1 ? logos.slice(-1) : [];
+    const img = (u) => `<img src="${u}" alt="">`;
+    return `<div class="xk"><div class="xl">${left.map(img).join('')}</div>
+      <div class="xc"><div class="x1">${esc(E.title)}</div><div class="x2">${esc(E.sport)} ${esc(E.region)}</div>
+      <div class="x3">${esc(App.fmtDateRange(E.dateStart, E.dateEnd))}  ·  ${esc([E.venue, E.city].filter(Boolean).join(', '))}</div></div>
+      <div class="xr">${right.map(img).join('')}</div></div>
+      <div class="xt">${esc(title)}</div>`;
   }
+  const scFoot = () => `<div class="xf">${esc(App.S.event.organizer || '')}</div>`;
+  const scSign = (label, sub, name) => `<div class="xs"><div class="xs-name">${esc(name || '')}</div><div class="xs-l">${esc(label)}</div><div class="xs-s">${esc(sub)}</div></div>`;
+  // Baris angka 1-9 (3 baris x 3 kolom per gate).
+  const tallyRows = (nGates, tail = []) => [0, 1, 2].map((r) => `<tr class="xn">${Array.from({ length: nGates }, () => [1, 2, 3].map((c) => `<td class="${c === 1 ? 'gl' : ''}">${r * 3 + c}</td>`).join('')).join('')}${tail[r] || ''}</tr>`).join('');
+  const gateCols = (n) => Array.from({ length: n * 3 }, () => '<col class="sub">').join('');
 
+  // ---------- Score card stroke (1 halaman per pairing) ----------
   function strokeCard(ev, ri, g) {
     const rc = ev.config.rounds[ri];
-    const E = App.S.event;
-    const size = Math.max(ev.config.groupSize || 4, g.entryIds.length);
+    const N = rc.gates;
+    const dbl = ev.kind === 'double';
+    const size = Math.max(ev.config.groupSize || (dbl ? 2 : 4), g.entryIds.length);
     const rows = Array.from({ length: size }, (_, i) => g.entryIds[i] || null);
     const filled = opts.filled;
+    const short = (n) => n.replace(/^Penyisihan\s*/i, '').replace(/^Ronde\s*/i, 'R');
+    const cat = dbl ? boxes([['d', 'Double Stroke'], ['x', 'Mix Double Stroke']], ev.gender === 'X' ? 'x' : 'd')
+      : boxes([['s', 'Single Stroke'], ['t', 'Team Stroke']], ev.kind === 'team' ? 't' : 's');
+    const gender = boxes([['L', 'Putra'], ['P', 'Putri'], ...(dbl ? [['X', 'Mix']] : [])], ev.gender);
     const body = rows.map((id, i) => {
       const e = id && App.entry(id);
       const sc = id ? St.score(ev, ri, id) : { g: [], ob: 0 };
-      const s = St.sumScore(sc, rc.gates);
-      const cells = Array.from({ length: rc.gates }, (_, gi) => (filled && sc.g[gi] != null
-        ? `<td class="gc ${App.scoreCls(sc.g[gi])}"><b class="sv">${sc.g[gi]}</b></td>`
-        : `<td class="gc">${tickGrid()}</td>`)).join('');
-      return `<tr><td class="c">${i + 1}</td><td class="nm">${e ? `<b>${esc(App.entryName(e))}</b><br><small>${esc(App.kName(e.kontingenId))}</small>` : ''}</td>${cells}
-        <td class="c tot">${filled && s.played ? s.sum : ''}</td></tr>`;
+      const s = St.sumScore(sc, N);
+      const names = e ? (dbl ? e.members.filter(Boolean).map(App.athName) : [App.entryName(e)]) : [];
+      const nm = e ? `${names.map((n) => `<div class="xnm">${esc(n)}</div>`).join('')}<div class="xkt">${esc(App.kName(e.kontingenId))}</div>` : '';
+      const cells = Array.from({ length: N }, (_, gi) => {
+        const v = filled ? sc.g[gi] : null;
+        return `<td class="xv gl" colspan="3">${v != null && v !== '' ? esc(v) : ''}</td>`;
+      }).join('');
+      const pen = filled && sc.ob ? sc.ob : '';
+      return `<tr class="xp"><td class="xno" rowspan="4">${i + 1}</td><td class="xname" rowspan="4">${nm}</td>${cells}<td class="xtot" rowspan="3">${filled && s.played ? s.sum : ''}</td></tr>
+        ${tallyRows(N, ['', '', `<td class="xpen">Penalty : ${pen}</td>`])}`;
     }).join('');
-    const players = rows.map((id, i) => `<div class="sign small"><div>Pemain ${i + 1}</div><div class="sign-space"></div><div class="sign-name">${id ? esc(App.entryName(App.entry(id))) : ''}</div></div>`).join('');
-    return `<section class="page sc">${kop('STROKE COMPETITION SCORE CARD')}
-      <div class="info"><span>Kategori: <b>${esc(ev.name)}</b></span><span>Ronde: <b>${esc(rc.name)}</b></span><span>Pairing: <b>${g.no}</b></span>
-        <span>Lapangan: <b>${esc(g.lane || '....')}</b></span><span>Jam: <b>${esc(g.time || '....')}</b></span><span>Tempat: <b>${esc(E.venue)}</b></span></div>
-      <table class="pt sc-table"><thead><tr><th>No</th><th>Nama / Kab-Kota</th>${Array.from({ length: rc.gates }, (_, i) => `<th>Gate ${i + 1}</th>`).join('')}<th>Total</th></tr></thead><tbody>${body}</tbody></table>
-      <div class="signs">${players}<div class="sign small"><div>Wasit</div><div class="sign-space"></div><div class="sign-name">(............................)</div></div></div>
+    const signs = rows.map((id, i) => scSign(`${dbl ? 'PAIR' : 'PLAYER'} No. ${i + 1}`, dbl ? 'Player Signature' : 'Signature', id ? App.entryName(App.entry(id)) : '')).join('') + scSign('REFEREE', 'Signature', '');
+    return `<section class="page xsc${dbl ? ' dbl' : ''}">${scKop(`STROKE COMPETITION SCORE CARD  ·  ${dbl ? 'DOUBLE / MIX DOUBLE STROKE' : 'SINGLE STROKE'}`)}
+      <div class="xi">
+        <div><span class="xlab">Category :</span>${cat}</div>
+        <div><span class="xlab">Round :</span>${boxes(ev.config.rounds.map((r, k) => [k, short(r.name)]), ri)}</div>
+        <div><span class="xlab">Pairing :</span><b>${g.no}</b></div>
+        <div><span class="xlab">Gender :</span>${gender}</div>
+        <div><span class="xlab">Lane :</span>${laneBoxes(g.lane)}</div>
+        <div><span class="xlab">Date :</span>${dots(g.date ? App.fmtDate(g.date) : '')}<span class="xlab">Time :</span>${dots(g.time)}</div>
+      </div>
+      <table class="xg"><colgroup><col class="cno"><col class="cname">${gateCols(N)}<col class="ctot"></colgroup>
+        <thead><tr><th>NO</th><th>NAME</th>${Array.from({ length: N }, (_, i) => `<th class="gl" colspan="3">GATE ${i + 1}</th>`).join('')}<th class="gl">TOTAL SCORE</th></tr></thead>
+        <tbody><tr class="xpar"><td class="xparl" colspan="2">PAR</td>${Array.from({ length: N }, () => '<td class="gl" colspan="3"></td>').join('')}<td class="gl"></td></tr>${body}</tbody></table>
+      <div class="xsg">${signs}</div>${scFoot()}
     </section>`;
   }
 
@@ -182,43 +223,50 @@
     </section>`;
   }
 
-  // ---------- Score card fairway ----------
+  // ---------- Score card fairway (1 halaman per partai) ----------
   function fairwayCard(ev, m, gi) {
     const r = Fw.matchResult(ev, m);
     const g = m.games[gi];
     const gr = Fw.gameResult(ev, g);
     const N = ev.config.gates;
+    const X = 3; // kotak extra / sudden death
     const filled = opts.filled;
-    const nA0 = Fw.gamePlayers(ev, r.a, g, m), nB0 = Fw.gamePlayers(ev, r.b, g, m);
-    const sw = filled && gr.played && (gr.pb > gr.pa || (gr.pa === gr.pb && gr.winner === 'b'));
-    const order = sw ? [1, 0] : [0, 1]; // order[baris] = sisi data (0 = peserta a, 1 = peserta b)
-    const ids = [r.a, r.b], names = [nA0, nB0];
-    const nA = names[order[0]], nB = names[order[1]];
-    const extraN = Math.max(3, (g.extra || []).filter((p) => p && p[0] != null).length);
-    const val = (pair, side) => (filled && pair && pair[side] != null && pair[side] !== '' ? `<b class="sv">${pair[side]}</b>` : '');
-    const rowFor = (pos, side, id, name) => `<tr><td class="c">${pos + 1}</td><td class="nm"><b>${esc(name)}</b><br><small>${esc(App.kName(App.entry(id)?.kontingenId))}</small></td>
-      ${Array.from({ length: N }, (_, i) => `<td class="gc">${val(g.gates[i], side) || (filled ? '' : tickGrid())}</td>`).join('')}
-      ${Array.from({ length: extraN }, (_, i) => `<td class="gc">${val((g.extra || [])[i], side)}</td>`).join('')}</tr>`;
-    const winRow = Array.from({ length: N }, (_, i) => {
-      const p = g.gates[i];
-      if (!filled || !p || p[0] == null || p[1] == null) return '<td></td>';
-      return `<td class="c">${+p[0] < +p[1] ? order.indexOf(0) + 1 : +p[1] < +p[0] ? order.indexOf(1) + 1 : '='}</td>`;
-    }).join('') + Array.from({ length: extraN }, (_, i) => {
-      const p = (g.extra || [])[i];
-      if (!filled || !p || p[0] == null || p[1] == null) return '<td></td>';
-      return `<td class="c">${+p[0] < +p[1] ? order.indexOf(0) + 1 : +p[1] < +p[0] ? order.indexOf(1) + 1 : '='}</td>`;
-    }).join('');
-    const winner = filled && gr.winner ? (gr.winner === 'a' ? nA0 : nB0) : '';
-    const win = [gr.pa, gr.pb];
-    return `<section class="page sc">${kop('FAIRWAY COMPETITION SCORE CARD')}
-      <div class="info"><span>Kategori: <b>${esc(ev.name)}</b></span><span>Babak: <b>${esc(Fw.stageLabel(ev, m))}</b></span>${g.label ? `<span>Partai: <b>${esc(g.label)}</b></span>` : ''}
-        <span>Lapangan: <b>${esc(m.lane || '....')}</b></span><span>Tanggal: <b>${esc(m.date ? App.fmtDate(m.date) : '....')}</b></span><span>Jam: <b>${esc(m.time || '....')}</b></span></div>
-      <table class="pt sc-table"><thead><tr><th>No</th><th>Nama / Kab-Kota</th>${Array.from({ length: N }, (_, i) => `<th>Gate ${i + 1}</th>`).join('')}${Array.from({ length: extraN }, (_, i) => `<th>PK ${i + 1}</th>`).join('')}</tr></thead>
-      <tbody>${rowFor(0, order[0], ids[order[0]], nA)}${rowFor(1, order[1], ids[order[1]], nB)}<tr><td colspan="2" class="c"><b>WINNER</b></td>${winRow}</tr></tbody></table>
-      <table class="pt result-row"><tr><td><b>RESULT</b></td><td>No.1 WIN : <b>${filled && gr.played ? win[order[0]] : ''}</b></td><td>No.2 WIN : <b>${filled && gr.played ? win[order[1]] : ''}</b></td><td>EVEN : <b>${filled && gr.played ? gr.even : ''}</b></td><td class="w">WINNER : <b>${esc(winner)}</b></td></tr></table>
-      <div class="signs"><div class="sign small"><div>Pemain No. 1</div><div class="sign-space"></div><div class="sign-name">${esc(nA)}</div></div>
-        <div class="sign small"><div>Pemain No. 2</div><div class="sign-space"></div><div class="sign-name">${esc(nB)}</div></div>
-        <div class="sign small"><div>Wasit</div><div class="sign-space"></div><div class="sign-name">(............................)</div></div></div>
+    const team = ev.kind === 'team';
+    const ids = [r.a, r.b];
+    const val = (pair, side) => (filled && pair && pair[side] != null && pair[side] !== '' ? esc(pair[side]) : '');
+    const won = (p) => (!filled || !p || p[0] == null || p[1] == null || p[0] === '' || p[1] === '' ? '' : +p[0] < +p[1] ? 'A' : +p[1] < +p[0] ? 'B' : '=');
+    const all = [...Array.from({ length: N }, (_, i) => g.gates[i]), ...Array.from({ length: X }, (_, i) => (g.extra || [])[i])];
+    const side = (s) => {
+      const id = ids[s];
+      const e = id && id !== 'BYE' ? App.entry(id) : null;
+      const names = e ? Fw.gamePlayers(ev, id, g, m).split(' / ').map((x) => (x === '-' ? '' : x)) : [];
+      const nm = e ? `${names.map((n) => `<div class="xnm">${n ? esc(n) : '<span class="xdots"></span>'}</div>`).join('')}<div class="xkt">${esc(App.kName(e.kontingenId))}</div>` : '';
+      const cells = all.map((p, i) => `<td class="xv gl${i === N ? ' gx' : ''}" colspan="3">${val(p, s)}</td>`).join('');
+      return `<tr class="xp"><td class="xno" rowspan="4">${s ? 'B' : 'A'}</td><td class="xname" rowspan="4">${nm}</td>${cells}<td class="xtot" rowspan="4">${filled && gr.played ? (s ? gr.pb : gr.pa) : ''}</td></tr>${tallyRows(N + X)}`;
+    };
+    const stage = m.stage === 'group' ? 'g' : m.stage === 'third' ? '3' : Fw.stageLabel(ev, m);
+    const grpName = m.stage === 'group' ? (Fw.data(ev).groups.find((x) => x.id === m.group) || {}).name || '' : '';
+    const stageBoxes = `${bx(stage === 'g', 'Group')} ${grpName ? `<b>${esc(grpName)}</b>${m.round ? ` <small>(Putaran ${m.round})</small>` : ''}` : '<span class="xdots s"></span>'}`
+      + boxes([['Semifinal', 'Semifinal'], ['3', '3rd Place'], ['Final', 'Final']], stage)
+      + (!['g', '3', 'Semifinal', 'Final'].includes(stage) ? ` <b>${esc(stage)}</b>` : '');
+    const cat = boxes([['single', 'Single Fairway'], ['double', 'Double Fairway'], ['mix', 'Mix Double Fairway'], ['team', 'Team Fairway']], ev.kind === 'double' && ev.gender === 'X' ? 'mix' : ev.kind);
+    const signName = (s) => (ids[s] && ids[s] !== 'BYE' ? (team ? App.kName(App.entry(ids[s])?.kontingenId) : App.entryName(App.entry(ids[s]))) : '');
+    return `<section class="page xsc fw">${scKop('FAIRWAY COMPETITION SCORE CARD  ·  MATCH PLAY')}
+      <div class="xi">
+        <div><span class="xlab">Category :</span>${cat}</div>
+        <div><span class="xlab">Gender :</span>${boxes([['L', 'Putra'], ['P', 'Putri'], ['X', 'Mix']], ev.gender)}</div>
+        <div><span class="xlab">Stage :</span>${stageBoxes}</div>
+        <div><span class="xlab">Lane :</span>${laneBoxes(g.lane || m.lane)}</div>
+        <div><span class="xlab">Team Match :</span>${team ? boxes(m.games.map((x, k) => [k, x.label]), gi) : '-'}</div>
+        <div><span class="xlab">Date :</span>${dots(m.date ? App.fmtDate(m.date) : '')}<span class="xlab">Time :</span>${dots(m.time)}</div>
+      </div>
+      <table class="xg"><colgroup><col class="cno"><col class="cname">${gateCols(N + X)}<col class="ctot"></colgroup>
+        <thead><tr><th>SIDE</th><th>NAME</th>${Array.from({ length: N }, (_, i) => `<th class="gl" colspan="3">GATE ${i + 1}</th>`).join('')}${Array.from({ length: X }, (_, i) => `<th class="gl${i ? '' : ' gx'}" colspan="3">EXTRA ${i + 1}</th>`).join('')}<th class="gl">GATES<br>WON</th></tr></thead>
+        <tbody><tr class="xpar"><td class="xparl" colspan="2">PAR</td>${all.map((_, i) => `<td class="gl${i === N ? ' gx' : ''}" colspan="3"></td>`).join('')}<td class="gl"></td></tr>
+          ${side(0)}
+          <tr class="xwin"><td class="xparl" colspan="2">GATE WINNER</td>${all.map((p, i) => `<td class="gl${i === N ? ' gx' : ''}" colspan="3">${won(p)}</td>`).join('')}<td class="gl">${filled && gr.winner ? (gr.winner === 'a' ? 'A' : 'B') : ''}</td></tr>
+          ${side(1)}</tbody></table>
+      <div class="xsg">${scSign('PLAYER / PAIR A', 'Signature', signName(0))}${scSign('PLAYER / PAIR B', 'Signature', signName(1))}${scSign('REFEREE', 'Signature', '')}</div>${scFoot()}
     </section>`;
   }
 
@@ -486,7 +534,7 @@
         else if (pre.length > 1) combos.push(['p', pre.map((i) => rcs[i].name).join(' + ')]);
         if (ev.kind !== 'team' && rcs.length > pre.length) combos.push(['a', rcs.map((r) => r.name).join(' + ')]);
         extra = `<select id="pr-round">${App.ui.options([...rcs.map((r, i) => [i, r.name]), ...combos], p[1] || 0)}</select>`;
-        if (!p[2] && !['p', 'a', 'tg'].includes(p[1])) extra += `<select id="pr-layout">${App.ui.options([['sheet', 'Rekap 1 halaman'], ['cards', 'Kartu per pairing']], opts.layout)}</select>`;
+        if (!p[2] && !['p', 'a', 'tg'].includes(p[1])) extra += `<select id="pr-layout">${App.ui.options([['sheet', 'Rekap 1 halaman'], ['cards', 'Score card per pairing']], opts.layout)}</select>`;
       }
       return `<div class="print-toolbar no-print card">
           <div class="row gap wrap">

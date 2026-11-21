@@ -804,3 +804,58 @@ td.name select.swap.dup { border-color: var(--accent); background: color-mix(in 
 .page table.sch-team tr.sch-first td { border-top: 2px solid #000; }
 .page table.sch-team tbody tr { page-break-inside: avoid; }
 .page table.sch-team td:nth-child(n) { height: 22px; }
+
+/* ---------- score card format panitia (SC STROKE / SC FAIRWAY.xlsx) ---------- */
+.page.xsc { height: 210mm; overflow: hidden; display: flex; flex-direction: column; padding: 7mm 9mm 5mm; font-family: Arial, "Segoe UI", sans-serif; color: #111; }
+.xsc .xk { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 3mm; }
+.xsc .xk .xl, .xsc .xk .xr { display: flex; gap: 2mm; align-items: center; }
+.xsc .xk .xr { justify-content: flex-end; }
+.xsc .xk img { height: 17mm; width: auto; max-width: 20mm; object-fit: contain; }
+.xsc .xc { flex: 1; text-align: center; }
+.xsc .x1 { white-space: nowrap; font-size: 14pt; font-weight: 700; color: #111; }
+.xsc .x2 { font-size: 12pt; font-weight: 700; color: #267a20; letter-spacing: .5px; }
+.xsc .x3 { font-size: 9pt; color: #333; }
+.xsc .xt { align-self: center; margin: 2mm 0 0; padding: 1.3mm 10mm; background: #267a20; color: #fff; font-size: 11pt; font-weight: 700; letter-spacing: .4px; white-space: pre; }
+.xsc .xi { display: grid; grid-template-columns: repeat(3, max-content); justify-content: space-between; gap: 1.4mm 6mm; margin: 2.5mm 0 2mm; padding-top: 2.5mm; border-top: .9mm double #111; font-size: 9pt; }
+.xsc.fw .xi { grid-template-columns: repeat(2, max-content); justify-content: start; column-gap: 24mm; }
+.xsc .xi > div { display: flex; align-items: center; gap: 0 1.2mm; white-space: nowrap; }
+.xsc .xlab { font-weight: 700; margin-right: 1.5mm; }
+.xsc .xlab:not(:first-child) { margin-left: 4mm; }
+.xsc .xb { display: inline-flex; align-items: center; justify-content: center; width: 3.6mm; height: 3.6mm; border: .3mm solid #111; margin: 0 1mm 0 2.2mm; font-size: 8pt; font-weight: 700; line-height: 1; }
+.xsc .xb:first-of-type { margin-left: 0; }
+.xsc .xb.on { background: #267a20; border-color: #267a20; color: #fff; }
+.xsc .xdots { display: inline-block; min-width: 26mm; border-bottom: .3mm dotted #111; height: 3.6mm; }
+.xsc .xdots.s { min-width: 12mm; }
+.xsc table.xg { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.xsc table.xg col.cno { width: 10mm; } .xsc table.xg col.cname { width: 52mm; } .xsc table.xg col.ctot { width: 30mm; }
+.xsc.fw table.xg col.cname { width: 50mm; } .xsc.fw table.xg col.ctot { width: 17mm; }
+.xsc table.xg th, .xsc table.xg td { border: .25mm solid #111; padding: 0; text-align: center; vertical-align: middle; font-size: 8.5pt; color: #111; background: none; }
+.xsc table.xg th { background: #267a20; color: #fff; font-weight: 700; height: 7mm; font-size: 8pt; line-height: 1.05; }
+.xsc table.xg .gl { border-left: .55mm solid #111; }
+.xsc table.xg .gx { border-left: .9mm solid #111; }
+.xsc table.xg tr.xpar td { background: #e8f1e6; height: 6mm; font-size: 10pt; color: #00f; }
+.xsc table.xg tr td.xparl { text-align: right; padding-right: 3mm; font-size: 8.5pt; color: #111; font-weight: 700; }
+.xsc table.xg tr.xp td { border-top: .55mm solid #111; height: 10mm; }
+.xsc table.xg td.xv { font-size: 14pt; color: #00f; font-weight: 700; }
+.xsc table.xg td.xno { background: #f2f2f2; font-size: 16pt; font-weight: 700; border-left: .55mm solid #111; }
+.xsc table.xg td.xname { text-align: left; vertical-align: top; padding: 1.5mm 2mm; border-left: .55mm solid #111; border-right: .55mm solid #111; }
+.xsc table.xg .xnm { font-size: 10pt; font-weight: 700; line-height: 1.2; }
+.xsc table.xg .xnm .xdots { min-width: 40mm; height: 4.5mm; }
+.xsc table.xg .xkt { font-size: 7.5pt; color: #666; margin-top: .8mm; text-transform: uppercase; }
+.xsc table.xg tr.xn td { height: 5.5mm; font-size: 8.5pt; color: #9a9a9a; }
+.xsc table.xg td.xtot { font-size: 16pt; font-weight: 700; border-left: .55mm solid #111; border-right: .55mm solid #111; }
+.xsc table.xg td.xpen { text-align: left; padding-left: 1.5mm; font-size: 7pt; color: #666; border-left: .55mm solid #111; border-right: .55mm solid #111; }
+.xsc table.xg tr.xwin td { background: #e8f1e6; height: 8mm; font-size: 10pt; font-weight: 700; border-top: .55mm solid #111; border-bottom: .55mm solid #111; }
+.xsc.dbl table.xg tr.xp td { height: 17mm; } .xsc.dbl table.xg tr.xn td { height: 10mm; font-size: 9.5pt; }
+.xsc.fw table.xg tr.xp td { height: 14mm; } .xsc.fw table.xg tr.xn td { height: 7.6mm; } .xsc.fw table.xg tr.xwin td { height: 10mm; }
+.xsc .xsg { display: flex; justify-content: space-between; gap: 6mm; margin-top: auto; padding-top: 3mm; }
+.xsc .xs { flex: 1; max-width: 60mm; text-align: center; }
+.xsc .xs-name { height: 15mm; display: flex; align-items: flex-end; justify-content: center; padding-bottom: .6mm; font-size: 8pt; border-bottom: .3mm solid #111; white-space: nowrap; overflow: hidden; }
+.xsc .xs-l { font-size: 8.5pt; font-weight: 700; margin-top: .8mm; }
+.xsc .xs-s { font-size: 7pt; color: #555; }
+.xsc .xf { margin-top: 2.5mm; padding-top: 1mm; border-top: .25mm solid #888; font-size: 6.5pt; color: #888; }
+.print-area.bw .xsc .xt, .print-area.bw .xsc .xb.on { background: #fff !important; color: #000 !important; border: .3mm solid #000 !important; }
+.print-area.bw .xsc .x2 { color: #000 !important; }
+.print-area.bw .xsc table.xg th { background: #fff !important; color: #000 !important; }
+.print-area.bw .xsc table.xg tr.xn td { color: #888 !important; }
+.print-area.bw .xsc table.xg td.xv, .print-area.bw .xsc table.xg .xnm, .print-area.bw .xsc table.xg td.xno, .print-area.bw .xsc table.xg td.xtot { font-weight: 700 !important; }
