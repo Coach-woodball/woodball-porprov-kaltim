@@ -896,3 +896,8 @@ td.name select.swap.dup { border-color: var(--accent); background: color-mix(in 
 .page.mr .signs { padding-top: 2px; }
 .page.mr .mr-sum { margin: 1mm 0 2mm; }
 .page table.mr-d .mr-st { letter-spacing: 0; font-size: 7.5pt; padding: 1px 4px; white-space: normal; line-height: 1.2; }
+.mr-sum.two { grid-template-columns: repeat(2, 1fr); }
+.page.mr table.mr-t { table-layout: fixed; }
+.page.mr table.mr-t th, .page.mr table.mr-t td { font-size: 10.5pt; padding: 2px 6px; }
+.mr-st.draw { color: #1d4f91; background: #e4eefb; }
+.print-area.bw .mr-st.draw { border-style: dotted !important; }

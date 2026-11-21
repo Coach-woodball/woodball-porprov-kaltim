@@ -425,26 +425,38 @@
   }
 
   // ---------- Laporan resmi perolehan medali (untuk KONI) ----------
-  // DEFINITIF = nomor sudah selesai seluruhnya; SEMENTARA = nomor masih berjalan, peraih medali bisa berubah.
+  // Klasemen hanya menghitung medali DEFINITIF (nomor yang seluruh pertandingannya selesai).
+  // Status per nomor: definitif / sedang dipertandingkan / sudah diundi / belum dipertandingkan.
+  function evStatus(ev, pl) {
+    if (pl.final && pl.list.some((p) => p.rank <= 3)) return 'fix';
+    if (ev.discipline === 'fairway') {
+      const d = Fw.data(ev);
+      if (!d.matches.length) return 'none';
+      return d.matches.some((m) => m.games.some((g) => Fw.gameResult(ev, g).played)) ? 'run' : 'draw';
+    }
+    const rounds = St.data(ev).rounds || [];
+    if (!rounds.some((r) => r.groups && r.groups.length)) return 'none';
+    return pl.list.length ? 'run' : 'draw';
+  }
+
   function medalReport() {
     const K = ['gold', 'silver', 'bronze'];
     const KEY = { 1: 'gold', 2: 'silver', 3: 'bronze' };
-    const t = Object.fromEntries(App.S.kontingen.map((k) => [k.id, { k, fix: { gold: 0, silver: 0, bronze: 0 }, tmp: { gold: 0, silver: 0, bronze: 0 } }]));
+    const t = Object.fromEntries(App.S.kontingen.map((k) => [k.id, { k, gold: 0, silver: 0, bronze: 0 }]));
     const evs = App.S.events.map((ev) => {
       const pl = App.placements(ev);
-      const medalists = pl.list.filter((p) => p.rank <= 3);
-      const status = !medalists.length ? 'none' : pl.final ? 'fix' : 'tmp';
-      medalists.forEach((p) => { const e = App.entry(p.entryId); if (e && t[e.kontingenId]) t[e.kontingenId][status][KEY[p.rank]]++; });
+      const status = evStatus(ev, pl);
+      const medalists = status === 'fix' ? pl.list.filter((p) => p.rank <= 3) : [];
+      medalists.forEach((p) => { const e = App.entry(p.entryId); if (e && t[e.kontingenId]) t[e.kontingenId][KEY[p.rank]]++; });
       return { ev, medalists, status };
     });
-    const sum = (o) => o.gold + o.silver + o.bronze;
-    const rows = Object.values(t).map((r) => ({ ...r, all: { gold: r.fix.gold + r.tmp.gold, silver: r.fix.silver + r.tmp.silver, bronze: r.fix.bronze + r.tmp.bronze } }));
+    const rows = Object.values(t);
+    rows.forEach((r) => (r.total = r.gold + r.silver + r.bronze));
     const cmp = (a, b) => K.reduce((d, k) => d || b[k] - a[k], 0);
-    rows.sort((a, b) => cmp(a.fix, b.fix) || cmp(a.all, b.all) || a.k.name.localeCompare(b.k.name));
-    rows.forEach((r, i) => { const p = rows[i - 1]; r.rank = p && !cmp(p.fix, r.fix) && !cmp(p.all, r.all) ? p.rank : i + 1; });
+    rows.sort((a, b) => cmp(a, b) || a.k.name.localeCompare(b.k.name));
+    rows.forEach((r, i) => { const p = rows[i - 1]; r.rank = p && !cmp(p, r) ? p.rank : i + 1; });
     const n = (v, cls = '') => `<td class="c${cls}">${v || '-'}</td>`;
-    const grp = (o, cls) => K.map((k) => n(o[k], cls)).join('') + n(sum(o), ' mr-j' + cls);
-    const tot = (f) => { const o = { gold: 0, silver: 0, bronze: 0 }; rows.forEach((r) => K.forEach((k) => (o[k] += f(r)[k]))); return o; };
+    const tot = Object.fromEntries([...K, 'total'].map((k) => [k, rows.reduce((s, r) => s + r[k], 0)]));
     const cnt = (s) => evs.filter((x) => x.status === s).length;
     const now = new Date();
     const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(':', '.');
@@ -454,25 +466,24 @@
     const sumBox = (lbl, v, cls) => `<div class="mr-box ${cls}"><b>${v}</b><span>${lbl}</span></div>`;
     const page1 = `<section class="page flow mr">${kop('LAPORAN PEROLEHAN MEDALI CABANG OLAHRAGA WOODBALL', asOf)}
       <p class="mr-open">Dengan hormat, bersama ini kami sampaikan laporan perolehan medali Cabang Olahraga Woodball ${esc(App.S.event.title)} sebagai berikut:</p>
-      <div class="mr-sum">${sumBox('Jumlah Nomor Pertandingan', evs.length, '')}${sumBox('Nomor Telah Selesai (Medali Definitif)', cnt('fix'), 'fix')}${sumBox('Nomor Sedang Berlangsung (Medali Sementara)', cnt('tmp'), 'tmp')}${sumBox('Nomor Belum Dipertandingkan', cnt('none'), 'none')}</div>
-      <table class="pt mr-t"><thead>
-        <tr><th rowspan="2">Peringkat</th><th rowspan="2">Kabupaten / Kota</th><th colspan="4" class="mr-hfix">MEDALI DEFINITIF</th><th colspan="4" class="mr-htmp">MEDALI SEMENTARA</th><th colspan="4">JUMLAH</th></tr>
-        <tr>${[0, 1, 2].map(() => '<th>Emas</th><th>Perak</th><th>Perunggu</th><th>Jumlah</th>').join('')}</tr></thead><tbody>
-        ${rows.map((r) => `<tr><td class="c"><b>${r.rank}</b></td><td>${esc(r.k.name)}</td>${grp(r.fix, ' mr-fix')}${grp(r.tmp, ' mr-tmp')}${grp(r.all, '')}</tr>`).join('')}
-        <tr class="sum"><td colspan="2" class="c"><b>TOTAL</b></td>${grp(tot((r) => r.fix), ' mr-fix')}${grp(tot((r) => r.tmp), ' mr-tmp')}${grp(tot((r) => r.all), '')}</tr></tbody></table>
+      <div class="mr-sum two">${sumBox('Jumlah Nomor Pertandingan', evs.length, '')}${sumBox('Nomor Telah Selesai (Medali Definitif)', cnt('fix'), 'fix')}</div>
+      <table class="pt mr-t"><colgroup><col style="width:24mm"><col style="width:80mm"><col><col><col><col></colgroup><thead>
+        <tr><th rowspan="2">Peringkat</th><th rowspan="2">Kabupaten / Kota</th><th colspan="4" class="mr-hfix">MEDALI DEFINITIF</th></tr>
+        <tr><th>Emas</th><th>Perak</th><th>Perunggu</th><th>Jumlah</th></tr></thead><tbody>
+        ${rows.map((r) => `<tr><td class="c"><b>${r.rank}</b></td><td>${esc(r.k.name)}</td>${K.map((k) => n(r[k])).join('')}${n(r.total, ' mr-j')}</tr>`).join('')}
+        <tr class="sum"><td colspan="2" class="c"><b>TOTAL</b></td>${K.map((k) => n(tot[k])).join('')}${n(tot.total, ' mr-j')}</tr></tbody></table>
       <div class="mr-note"><b>Keterangan:</b><ol>
         <li>Medali Definitif adalah perolehan medali dari nomor pertandingan yang seluruh rangkaian pertandingannya telah selesai dan hasilnya telah disahkan.</li>
-        <li>Medali Sementara adalah perolehan medali dari nomor pertandingan yang masih berlangsung dan dapat berubah hingga nomor pertandingan tersebut selesai.</li>
-        <li>Peringkat disusun berdasarkan jumlah Medali Definitif (Emas, Perak, Perunggu), kemudian jumlah keseluruhan medali.</li></ol></div>
+        <li>Peringkat disusun berdasarkan jumlah medali Emas, kemudian Perak, kemudian Perunggu.</li></ol></div>
       <p class="mr-close">Demikian laporan ini kami sampaikan untuk dapat dipergunakan sebagaimana mestinya.</p>
       ${signs}</section>`;
-    const ST = { fix: ['DEFINITIF', 'fix'], tmp: ['SEMENTARA', 'tmp'], none: ['BELUM DIPERTANDINGKAN', 'none'] };
+    const ST = { fix: ['DEFINITIF', 'fix'], run: ['SEDANG DIPERTANDINGKAN', 'tmp'], draw: ['SUDAH DIUNDI, BELUM DIPERTANDINGKAN', 'draw'], none: ['BELUM DIPERTANDINGKAN', 'none'] };
     const who = (p, ev) => { const e = App.entry(p.entryId); return e ? (ev.kind === 'team' ? `<b>${esc(App.kName(e.kontingenId))}</b>` : `${esc(App.entryName(e))} <small>(${esc(App.kShort(e.kontingenId))})</small>`) : '-'; };
-    const order = ['fix', 'tmp', 'none'];
+    const order = ['fix', 'run', 'draw', 'none'];
     const list = evs.slice().sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
     const page2 = `<section class="page flow mr">${kop('DAFTAR PERAIH MEDALI PER NOMOR PERTANDINGAN', asOf)}
       <table class="pt mr-d"><colgroup><col style="width:9mm"><col style="width:42mm"><col style="width:39mm"><col><col><col></colgroup><thead><tr><th>No</th><th>Nomor Pertandingan</th><th>Status</th><th>Emas</th><th>Perak</th><th>Perunggu</th></tr></thead><tbody>
-      ${list.map(({ ev, medalists, status }, i) => `<tr class="mr-r${status}"><td class="c">${i + 1}</td><td><b>${esc(ev.name)}</b></td><td class="c"><span class="mr-st ${ST[status][1]}">${ST[status][0]}</span></td>
+      ${list.map(({ ev, medalists, status }, i) => `<tr><td class="c">${i + 1}</td><td><b>${esc(ev.name)}</b></td><td class="c"><span class="mr-st ${ST[status][1]}">${ST[status][0]}</span></td>
         ${[1, 2, 3].map((rk) => `<td>${medalists.filter((p) => p.rank === rk).map((p) => who(p, ev)).join('<hr>') || '<span class="muted">-</span>'}</td>`).join('')}</tr>`).join('')}
       </tbody></table>${signs}</section>`;
     return page1 + page2;
