@@ -798,3 +798,9 @@ select.tm-pl.dup { border-color: var(--accent); background: color-mix(in srgb, v
 /* Team Stroke: ganti pemain di baris pairing */
 td.name select.swap { font-weight: 700; font-size: .85rem; padding: 3px 6px; min-height: 0; height: 30px; max-width: 220px; }
 td.name select.swap.dup { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+/* Cetak jadwal fairway */
+.page table.sch .sch-blank { display: inline-block; min-width: 120px; border-bottom: 1px dotted #000; height: 1em; }
+.page table.sch td { vertical-align: middle; }
+.page table.sch-team tr.sch-first td { border-top: 2px solid #000; }
+.page table.sch-team tbody tr { page-break-inside: avoid; }
+.page table.sch-team td:nth-child(n) { height: 22px; }

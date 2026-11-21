@@ -300,24 +300,11 @@
     if (!e) return entryId === 'BYE' ? 'BYE' : '-';
     if (ev.kind !== 'team' || !game.slots) return App.entryName(e);
     const members = m ? Fw.matchLineup(m, entryId) : e.members;
-    return game.slots.map((s) => App.athName(members[s])).join(' / ');
+    return game.slots.map((s) => (members[s] ? App.athName(members[s]) : '-')).join(' / ');
   };
 
-  // Susunan pemain tim di satu pertandingan (diatur per putaran), bawaan dari anggota tim.
-  Fw.matchLineup = (m, entryId) => (m.lineup && m.lineup[entryId]) || (App.entry(entryId)?.members || []);
-
-  // Sebelum susunan pemain tim diubah: pertandingan yang sudah ada skornya tetap memakai susunan lama.
-  Fw.freezeLineup = (ev, entryId) => {
-    const e = App.entry(entryId);
-    if (!e) return;
-    Fw.data(ev).matches.forEach((m) => {
-      if (m.lineup && m.lineup[entryId]) return;
-      const r = Fw.matchResult(ev, m);
-      if ((r.a !== entryId && r.b !== entryId) || (r.status !== 'live' && r.status !== 'done')) return;
-      m.lineup = m.lineup || {};
-      m.lineup[entryId] = e.members.slice();
-    });
-  };
+  // Susunan pemain tim di satu pertandingan: diisi admin per putaran (kosong sampai dipilih).
+  Fw.matchLineup = (m, entryId) => (m.lineup && m.lineup[entryId]) || [];
 
   Fw.progress = (ev) => {
     const ms = Fw.data(ev).matches.filter((m) => {

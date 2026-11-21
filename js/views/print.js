@@ -9,6 +9,7 @@
   const DOCS = {
     'scorecard-stroke': 'Score Card Stroke',
     'scorecard-fairway': 'Score Card Fairway',
+    'schedule-fairway': 'Jadwal Pertandingan Fairway',
     result: 'Hasil Resmi',
     bracket: 'Bagan & Klasemen Grup',
     certificates: 'Sertifikat / Piagam',
@@ -399,6 +400,40 @@
     }).join('') || `<section class="page">${kop('DAFTAR PESERTA')}<p class="c">Belum ada atlet.</p></section>`;
   }
 
+  // Jadwal pertandingan fairway per babak/putaran. Team: satu pertandingan = 3 partai di lapangan masing-masing.
+  function scheduleFairway(ev) {
+    const d = Fw.data(ev);
+    const ms = d.matches.filter((m) => { const r = Fw.matchResult(ev, m); return !(r.a === 'BYE' || r.b === 'BYE'); });
+    if (!ms.length) return `<section class="page">${kop('JADWAL PERTANDINGAN', esc(ev.name))}<p class="c">Pertandingan belum diundi.</p></section>`;
+    const gName = (m) => (d.groups.find((g) => g.id === m.group) || {}).name || '';
+    // Kelompok: Putaran 1, 2, ... (semua grup), lalu babak bagan.
+    const sections = [];
+    const add = (key, title, m) => { let x = sections.find((y) => y.key === key); if (!x) sections.push((x = { key, title, list: [] })); x.list.push(m); };
+    ms.slice().sort((p, q) => (p.stage === 'group' ? 0 : 1) - (q.stage === 'group' ? 0 : 1) || p.round - q.round || (p.stage === 'third' ? 1 : 0) - (q.stage === 'third' ? 1 : 0) || gName(p).localeCompare(gName(q)) || p.pos - q.pos)
+      .forEach((m) => (m.stage === 'group' ? add('g' + m.round, 'Babak Grup · Putaran ' + m.round, m) : add(m.stage + m.round, Fw.stageLabel(ev, m), m)));
+    const team = ev.kind === 'team';
+    const blank = '<span class="sch-blank"></span>';
+    const nm = (id) => (id ? esc(App.entryName(App.entry(id))) + ` <small>(${esc(App.kShort(App.entry(id)?.kontingenId))})</small>` : '<i>menunggu</i>');
+    const info = (m) => [m.date ? App.fmtDateRange ? m.date.split('-').reverse().join('/') : m.date : '', m.time].filter(Boolean).map(esc).join('<br>');
+    const rows = (m, i) => {
+      const r = Fw.matchResult(ev, m);
+      const babak = m.stage === 'group' ? 'Grup ' + esc(gName(m)) : '';
+      if (!team) return `<tr><td class="c">${i}</td><td class="c">${babak}</td><td class="c">${info(m) || blank}</td><td class="c">${esc(m.lane || '')}</td><td>${nm(r.a)}</td><td class="c">vs</td><td>${nm(r.b)}</td></tr>`;
+      return m.games.map((g, gi) => {
+        const pl = (id) => (id ? Fw.gamePlayers(ev, id, g, m).split(' / ').map((x) => (x === '-' ? blank : esc(x))).join(' / ') : '');
+        const lead = gi === 0 ? `<td class="c" rowspan="${m.games.length}">${i}</td><td class="c" rowspan="${m.games.length}">${babak}</td><td class="c" rowspan="${m.games.length}">${info(m) || blank}</td><td rowspan="${m.games.length}"><b>${r.a ? esc(App.kShort(App.entry(r.a)?.kontingenId)) : '<i>menunggu</i>'}</b><br>vs<br><b>${r.b ? esc(App.kShort(App.entry(r.b)?.kontingenId)) : '<i>menunggu</i>'}</b></td>` : '';
+        return `<tr class="${gi === 0 ? 'sch-first' : ''}">${lead}<td><b>${esc(g.label)}</b></td><td class="c">${esc(g.lane || m.lane || '') || blank}</td><td>${pl(r.a)}</td><td>${pl(r.b)}</td></tr>`;
+      }).join('');
+    };
+    const head = team
+      ? '<tr><th>No</th><th>Grup</th><th>Hari / Jam</th><th>Tim</th><th>Partai</th><th>Lap.</th><th>Pemain tim 1</th><th>Pemain tim 2</th></tr>'
+      : '<tr><th>No</th><th>Grup</th><th>Hari / Jam</th><th>Lap.</th><th>Peserta 1</th><th></th><th>Peserta 2</th></tr>';
+    let no = 0;
+    return sections.map((sct) => `<section class="page flow">${kop('JADWAL PERTANDINGAN', esc(ev.name) + ' · ' + esc(sct.title))}
+      <table class="pt sch${team ? ' sch-team' : ''}"><thead>${head}</thead><tbody>${sct.list.map((m) => rows(m, ++no)).join('')}</tbody></table>
+      ${team ? '<p class="small">Ketiga partai dimainkan bersamaan. Susunan pemain diisi oleh official tim sebelum pertandingan.</p>' : ''}</section>`).join('');
+  }
+
   function buildPages(doc, params) {
     const ev = App.event(params[0]);
     if (doc === 'medals') return medalsPage();
@@ -424,6 +459,7 @@
       return ms.filter((m) => { const r = Fw.matchResult(ev, m); return r.a && r.b && r.a !== 'BYE' && r.b !== 'BYE'; })
         .map((m) => m.games.map((_, gi) => fairwayCard(ev, m, gi)).join('')).join('') || '<p class="c">Belum ada pertandingan yang pesertanya lengkap.</p>';
     }
+    if (doc === 'schedule-fairway') return ev.discipline === 'fairway' ? scheduleFairway(ev) : '<p class="c">Jadwal ini untuk nomor fairway.</p>';
     if (doc === 'result') return resultPage(ev);
     if (doc === 'bracket') return ev.discipline === 'fairway' ? bracketPage(ev) : '<p class="c">Bagan hanya untuk nomor fairway.</p>';
     return '';
@@ -437,7 +473,7 @@
       const p = params.slice(1);
       const ev = App.event(p[0]);
       const needEv = !['medals', 'athletes'].includes(doc);
-      const evList = App.S.events.filter((e) => (doc === 'scorecard-stroke' ? e.discipline === 'stroke' : doc === 'scorecard-fairway' || doc === 'bracket' ? e.discipline === 'fairway' : true));
+      const evList = App.S.events.filter((e) => (doc === 'scorecard-stroke' ? e.discipline === 'stroke' : doc === 'scorecard-fairway' || doc === 'bracket' || doc === 'schedule-fairway' ? e.discipline === 'fairway' : true));
       let extra = '';
       if (doc === 'scorecard-stroke' && ev && ev.kind === 'team' && !ev.config.own) {
         const src = App.event(ev.config.sourceEvent);

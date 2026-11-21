@@ -162,7 +162,7 @@
         <div class="card"><div class="row between wrap"><div><h3>${esc(ev.name)}</h3>
         <p class="muted">${entries.length} entri · ${esc(Fw.FORMATS[c.format])}${c.format === 'group_ko' ? ` · ${c.groupCount} grup, ${c.qualify} lolos/grup` : ''} · ${c.gates} gate · ${esc(Fw.THIRD[c.thirdPlace])}${ev.kind === 'team' ? ` · ${c.games.map((g) => esc(g.label)).join(', ')}` : ''}
         · <a href="#/events/${ev.id}">ubah aturan</a></p></div>
-        <div class="row gap wrap"><a class="btn sm ghost" href="#/print/scorecard-fairway/${ev.id}">🖨️ Score card</a><a class="btn sm ghost" href="#/print/bracket/${ev.id}">🖨️ Bagan</a><a class="btn sm ghost" href="#/print/result/${ev.id}">🖨️ Hasil resmi</a></div></div>`;
+        <div class="row gap wrap"><a class="btn sm ghost" href="#/print/scorecard-fairway/${ev.id}">🖨️ Score card</a><a class="btn sm ghost" href="#/print/schedule-fairway/${ev.id}">🖨️ Jadwal</a><a class="btn sm ghost" href="#/print/bracket/${ev.id}">🖨️ Bagan</a><a class="btn sm ghost" href="#/print/result/${ev.id}">🖨️ Hasil resmi</a></div></div>`;
       if (c.format === 'ko') {
         const seeds = d.seeds.filter((id) => App.entry(id));
         const missing = entries.filter((e) => !seeds.includes(e.id)).map((e) => e.id);
