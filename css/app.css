@@ -859,3 +859,40 @@ td.name select.swap.dup { border-color: var(--accent); background: color-mix(in 
 .print-area.bw .xsc table.xg th { background: #fff !important; color: #000 !important; }
 .print-area.bw .xsc table.xg tr.xn td { color: #888 !important; }
 .print-area.bw .xsc table.xg td.xv, .print-area.bw .xsc table.xg .xnm, .print-area.bw .xsc table.xg td.xno, .print-area.bw .xsc table.xg td.xtot { font-weight: 700 !important; }
+
+/* ---------- laporan resmi perolehan medali ---------- */
+.page.mr .doc-sub { font-size: 10.5pt; color: #333; }
+.mr-sum { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin: 2mm 0 3mm; }
+.mr-box { border: .3mm solid #999; border-radius: 2mm; padding: 1.6mm 3mm; display: flex; align-items: baseline; gap: 2.5mm; color: #111; }
+.mr-box b { font-size: 17pt; line-height: 1; }
+.mr-box span { font-size: 9pt; }
+.mr-box.fix { border-color: #1f7a1f; background: #eaf5e8; }
+.mr-box.tmp { border-color: #c27c00; background: #fff4dc; }
+.mr-box.none { color: #666; }
+.page table.mr-t th, .page table.mr-t td { font-size: 10pt; padding: 2.2px 4px; }
+.page table.mr-t th.mr-hfix { background: #cfe8cb; }
+.page table.mr-t th.mr-htmp { background: #fbe3b3; }
+.page table.mr-t td.mr-fix { background: #f3faf2; }
+.page table.mr-t td.mr-tmp { background: #fffaee; }
+.page table.mr-t td.mr-j { font-weight: 700; }
+.page table.mr-t td.mr-j, .page table.mr-t thead tr:nth-child(2) th:nth-child(4n), .page table.mr-t thead tr:first-child th:nth-child(n+3) { border-right-width: 2px; }
+.mr-note { font-size: 8.5pt; color: #333; line-height: 1.4; margin-top: 1mm; }
+.page table.mr-d td { font-size: 9pt; vertical-align: middle; padding: 2px 5px; line-height: 1.25; }
+.page table.mr-d td small { color: #555; font-size: 8pt; }
+.page table.mr-d hr { border: 0; border-top: 1px dotted #999; margin: 2px 0; }
+.mr-st { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 8pt; font-weight: 700; letter-spacing: .03em; border: 1px solid; white-space: nowrap; }
+.mr-st.fix { color: #1f6a1f; background: #e3f3e0; }
+.mr-st.tmp { color: #8a5a00; background: #fff0cc; }
+.mr-st.none { color: #777; background: #f2f2f2; }
+.print-area.bw .mr-box, .print-area.bw .mr-st, .print-area.bw .page table.mr-t th, .print-area.bw .page table.mr-t td { background: #fff !important; color: #000 !important; }
+.print-area.bw .mr-st.tmp, .print-area.bw .mr-box.tmp { border-style: dashed !important; }
+.page table.mr-d { table-layout: fixed; }
+.mr-open, .mr-close { font-size: 10pt; margin: 1mm 0 2mm; color: #111; }
+.mr-close { margin-top: 2mm; }
+.mr-note ol { margin: .5mm 0 0; padding-left: 5mm; }
+.mr-note li { margin: 0; }
+.mr-box span { line-height: 1.2; }
+.page.mr .sign-space { height: 13mm; }
+.page.mr .signs { padding-top: 2px; }
+.page.mr .mr-sum { margin: 1mm 0 2mm; }
+.page table.mr-d .mr-st { letter-spacing: 0; font-size: 7.5pt; padding: 1px 4px; white-space: normal; line-height: 1.2; }

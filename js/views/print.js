@@ -13,6 +13,7 @@
     result: 'Hasil Resmi',
     bracket: 'Bagan & Klasemen Grup',
     certificates: 'Sertifikat / Piagam',
+    medalreport: 'Laporan Resmi Perolehan Medali',
     medals: 'Rekap Medali per Kab/Kota',
     athletes: 'Daftar Peserta per Kontingen',
   };
@@ -423,6 +424,60 @@
     return list.map(certPage).join('') || `<section class="page">${kop('SERTIFIKAT')}<p class="c">${t === 'official' ? 'Belum ada official/pelatih. Tambahkan di menu Kontingen.' : 'Belum ada penerima sertifikat untuk pilihan ini.'}</p></section>`;
   }
 
+  // ---------- Laporan resmi perolehan medali (untuk KONI) ----------
+  // DEFINITIF = nomor sudah selesai seluruhnya; SEMENTARA = nomor masih berjalan, peraih medali bisa berubah.
+  function medalReport() {
+    const K = ['gold', 'silver', 'bronze'];
+    const KEY = { 1: 'gold', 2: 'silver', 3: 'bronze' };
+    const t = Object.fromEntries(App.S.kontingen.map((k) => [k.id, { k, fix: { gold: 0, silver: 0, bronze: 0 }, tmp: { gold: 0, silver: 0, bronze: 0 } }]));
+    const evs = App.S.events.map((ev) => {
+      const pl = App.placements(ev);
+      const medalists = pl.list.filter((p) => p.rank <= 3);
+      const status = !medalists.length ? 'none' : pl.final ? 'fix' : 'tmp';
+      medalists.forEach((p) => { const e = App.entry(p.entryId); if (e && t[e.kontingenId]) t[e.kontingenId][status][KEY[p.rank]]++; });
+      return { ev, medalists, status };
+    });
+    const sum = (o) => o.gold + o.silver + o.bronze;
+    const rows = Object.values(t).map((r) => ({ ...r, all: { gold: r.fix.gold + r.tmp.gold, silver: r.fix.silver + r.tmp.silver, bronze: r.fix.bronze + r.tmp.bronze } }));
+    const cmp = (a, b) => K.reduce((d, k) => d || b[k] - a[k], 0);
+    rows.sort((a, b) => cmp(a.fix, b.fix) || cmp(a.all, b.all) || a.k.name.localeCompare(b.k.name));
+    rows.forEach((r, i) => { const p = rows[i - 1]; r.rank = p && !cmp(p.fix, r.fix) && !cmp(p.all, r.all) ? p.rank : i + 1; });
+    const n = (v, cls = '') => `<td class="c${cls}">${v || '-'}</td>`;
+    const grp = (o, cls) => K.map((k) => n(o[k], cls)).join('') + n(sum(o), ' mr-j' + cls);
+    const tot = (f) => { const o = { gold: 0, silver: 0, bronze: 0 }; rows.forEach((r) => K.forEach((k) => (o[k] += f(r)[k]))); return o; };
+    const cnt = (s) => evs.filter((x) => x.status === s).length;
+    const now = new Date();
+    const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(':', '.');
+    const day = new Date((opts.date || App.today()) + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long' });
+    const asOf = `Status Data per ${esc(day)}, ${esc(App.fmtDate(opts.date || App.today()))}${!opts.date || opts.date === App.today() ? ` Pukul ${jam} WITA` : ''}`;
+    const signs = `<div class="signs end">${signBox(App.S.event.resultSigner.title, App.S.event.resultSigner.name, true)}</div>`;
+    const sumBox = (lbl, v, cls) => `<div class="mr-box ${cls}"><b>${v}</b><span>${lbl}</span></div>`;
+    const page1 = `<section class="page flow mr">${kop('LAPORAN PEROLEHAN MEDALI CABANG OLAHRAGA WOODBALL', asOf)}
+      <p class="mr-open">Dengan hormat, bersama ini kami sampaikan laporan perolehan medali Cabang Olahraga Woodball ${esc(App.S.event.title)} sebagai berikut:</p>
+      <div class="mr-sum">${sumBox('Jumlah Nomor Pertandingan', evs.length, '')}${sumBox('Nomor Telah Selesai (Medali Definitif)', cnt('fix'), 'fix')}${sumBox('Nomor Sedang Berlangsung (Medali Sementara)', cnt('tmp'), 'tmp')}${sumBox('Nomor Belum Dipertandingkan', cnt('none'), 'none')}</div>
+      <table class="pt mr-t"><thead>
+        <tr><th rowspan="2">Peringkat</th><th rowspan="2">Kabupaten / Kota</th><th colspan="4" class="mr-hfix">MEDALI DEFINITIF</th><th colspan="4" class="mr-htmp">MEDALI SEMENTARA</th><th colspan="4">JUMLAH</th></tr>
+        <tr>${[0, 1, 2].map(() => '<th>Emas</th><th>Perak</th><th>Perunggu</th><th>Jumlah</th>').join('')}</tr></thead><tbody>
+        ${rows.map((r) => `<tr><td class="c"><b>${r.rank}</b></td><td>${esc(r.k.name)}</td>${grp(r.fix, ' mr-fix')}${grp(r.tmp, ' mr-tmp')}${grp(r.all, '')}</tr>`).join('')}
+        <tr class="sum"><td colspan="2" class="c"><b>TOTAL</b></td>${grp(tot((r) => r.fix), ' mr-fix')}${grp(tot((r) => r.tmp), ' mr-tmp')}${grp(tot((r) => r.all), '')}</tr></tbody></table>
+      <div class="mr-note"><b>Keterangan:</b><ol>
+        <li>Medali Definitif adalah perolehan medali dari nomor pertandingan yang seluruh rangkaian pertandingannya telah selesai dan hasilnya telah disahkan.</li>
+        <li>Medali Sementara adalah perolehan medali dari nomor pertandingan yang masih berlangsung dan dapat berubah hingga nomor pertandingan tersebut selesai.</li>
+        <li>Peringkat disusun berdasarkan jumlah Medali Definitif (Emas, Perak, Perunggu), kemudian jumlah keseluruhan medali.</li></ol></div>
+      <p class="mr-close">Demikian laporan ini kami sampaikan untuk dapat dipergunakan sebagaimana mestinya.</p>
+      ${signs}</section>`;
+    const ST = { fix: ['DEFINITIF', 'fix'], tmp: ['SEMENTARA', 'tmp'], none: ['BELUM DIPERTANDINGKAN', 'none'] };
+    const who = (p, ev) => { const e = App.entry(p.entryId); return e ? (ev.kind === 'team' ? `<b>${esc(App.kName(e.kontingenId))}</b>` : `${esc(App.entryName(e))} <small>(${esc(App.kShort(e.kontingenId))})</small>`) : '-'; };
+    const order = ['fix', 'tmp', 'none'];
+    const list = evs.slice().sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+    const page2 = `<section class="page flow mr">${kop('DAFTAR PERAIH MEDALI PER NOMOR PERTANDINGAN', asOf)}
+      <table class="pt mr-d"><colgroup><col style="width:9mm"><col style="width:42mm"><col style="width:39mm"><col><col><col></colgroup><thead><tr><th>No</th><th>Nomor Pertandingan</th><th>Status</th><th>Emas</th><th>Perak</th><th>Perunggu</th></tr></thead><tbody>
+      ${list.map(({ ev, medalists, status }, i) => `<tr class="mr-r${status}"><td class="c">${i + 1}</td><td><b>${esc(ev.name)}</b></td><td class="c"><span class="mr-st ${ST[status][1]}">${ST[status][0]}</span></td>
+        ${[1, 2, 3].map((rk) => `<td>${medalists.filter((p) => p.rank === rk).map((p) => who(p, ev)).join('<hr>') || '<span class="muted">-</span>'}</td>`).join('')}</tr>`).join('')}
+      </tbody></table>${signs}</section>`;
+    return page1 + page2;
+  }
+
   function medalsPage() {
     const { rows, perEvent } = App.medalTally();
     return `<section class="page flow">${kop('REKAPITULASI PEROLEHAN MEDALI', 'Per Kabupaten / Kota')}
@@ -485,6 +540,7 @@
   function buildPages(doc, params) {
     const ev = App.event(params[0]);
     if (doc === 'medals') return medalsPage();
+    if (doc === 'medalreport') return medalReport();
     if (doc === 'athletes') return athletesPage();
     if (doc === 'certificates') return certPages(ev);
     if (!ev) return '<p class="c">Pilih nomor.</p>';
@@ -514,13 +570,13 @@
   }
 
   App.views.print = {
-    render(params) {
+    render(params, solo) {
       let doc = DOCS[params[0]] ? params[0] : 'result';
       if (doc === 'certificates' && !App.isAdmin()) doc = 'result'; // sertifikat hanya dicetak admin
       const docs = Object.entries(DOCS).filter(([k]) => k !== 'certificates' || App.isAdmin());
       const p = params.slice(1);
       const ev = App.event(p[0]);
-      const needEv = !['medals', 'athletes'].includes(doc);
+      const needEv = !['medals', 'medalreport', 'athletes'].includes(doc);
       const evList = App.S.events.filter((e) => (doc === 'scorecard-stroke' ? e.discipline === 'stroke' : doc === 'scorecard-fairway' || doc === 'bracket' || doc === 'schedule-fairway' ? e.discipline === 'fairway' : true));
       let extra = '';
       if (doc === 'scorecard-stroke' && ev && ev.kind === 'team' && !ev.config.own) {
@@ -538,13 +594,13 @@
       }
       return `<div class="print-toolbar no-print card">
           <div class="row gap wrap">
-            <select id="pr-doc">${App.ui.options(docs, doc)}</select>
+            ${solo ? '' : `<select id="pr-doc">${App.ui.options(docs, doc)}</select>`}
             ${needEv ? `<select id="pr-ev">${doc === 'certificates' ? '<option value="">Semua nomor</option>' : ''}${App.ui.options(evList.map((e) => [e.id, e.name]), ev ? ev.id : '')}</select>` : ''}
             ${extra}
             <select id="pr-color" title="Warna cetakan">${App.ui.options([['color', 'Warna'], ['bw', 'Hitam putih']], printBw() ? 'bw' : 'color')}</select>
             ${doc.startsWith('scorecard') ? `<label class="chk"><input type="checkbox" id="pr-filled" ${opts.filled ? 'checked' : ''}> Isi skor</label>` : ''}
             ${doc === 'certificates' ? `<select id="pr-ctype">${App.ui.options([['juara', 'Juara (1-3)'], ['peserta', 'Peserta'], ['official', 'Official & pelatih'], ['semua', 'Semua']], opts.certType)}</select>` : ''}
-            ${['result', 'medals', 'certificates'].includes(doc) ? `<label class="mini">Tanggal tanda tangan<input type="date" id="pr-date" value="${opts.date || App.today()}"></label>` : ''}
+            ${['result', 'medals', 'medalreport', 'certificates'].includes(doc) ? `<label class="mini">Tanggal tanda tangan<input type="date" id="pr-date" value="${opts.date || App.today()}"></label>` : ''}
             <div class="spacer"></div>
             <button class="btn" id="pr-go">🖨️ Cetak / Simpan PDF</button>
           </div>
@@ -556,7 +612,7 @@
     mount(root, params) {
       const doc = DOCS[params[0]] ? params[0] : 'result';
       const go = (d, evId, ...rest) => App.go(['print', d, evId || '', ...rest].filter((x, i) => i < 3 || x).join('/').replace(/\/+$/, ''));
-      root.querySelector('#pr-doc').addEventListener('change', (e) => go(e.target.value, root.querySelector('#pr-ev')?.value));
+      root.querySelector('#pr-doc')?.addEventListener('change', (e) => go(e.target.value, root.querySelector('#pr-ev')?.value));
       root.querySelector('#pr-ev')?.addEventListener('change', (e) => go(doc, e.target.value));
       root.querySelector('#pr-round')?.addEventListener('change', (e) => go(doc, params[1], e.target.value));
       root.querySelector('#pr-layout')?.addEventListener('change', (e) => { opts.layout = e.target.value; App.rerender(); });
@@ -575,6 +631,12 @@
       fit();
       window.addEventListener('resize', fit);
     },
+  };
+
+  // Menu khusus Laporan Medali: halaman cetak laporan resmi tanpa pilihan dokumen lain.
+  App.views.laporan = {
+    render: () => `<h2>${esc(App.S.menu.laporan)}</h2>` + App.views.print.render(['medalreport'], true),
+    mount: (root) => App.views.print.mount(root, ['medalreport']),
   };
 
   // Halaman verifikasi dari kode QR sertifikat.

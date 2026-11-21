@@ -257,6 +257,7 @@
       const g = d.groups[0];
       if (!g) return { list: [], final: false };
       const table = Fw.standings(ev, g);
+      if (!table.some((r) => r.main > 0)) return { list: [], final: false }; // belum ada pertandingan selesai = belum ada peraih medali
       const final = Fw.groupDone(ev, g.id);
       table.forEach((r) => out.push({ rank: r.rank, entryId: r.entryId }));
       return { list: out, final };

@@ -125,7 +125,7 @@
     },
     menu: {
       dashboard: 'Beranda', athletes: 'Atlet', registration: 'Pendaftaran', daftar: 'Pendaftaran', peserta: 'List Peserta', announcements: 'Pengumuman', kontingen: 'Kontingen', events: 'Nomor & Entri',
-      stroke: 'Stroke', fairway: 'Fairway', results: 'Hasil & Medali', print: 'Cetak PDF',
+      stroke: 'Stroke', fairway: 'Fairway', results: 'Hasil & Medali', laporan: 'Laporan Medali', print: 'Cetak PDF',
       display: 'Layar Proyektor', settings: 'Pengaturan', backup: 'Backup Data',
     },
     validation: {

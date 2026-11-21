@@ -15,6 +15,7 @@
     stroke: '<path d="M12 18V3l7 3.5-7 3.5"/><ellipse cx="12" cy="19" rx="7" ry="2.5"/>',
     fairway: '<path d="M4 4l7 7M4 4v4M4 4h4M20 20l-7-7M20 20v-4M20 20h-4M20 4l-6 6M4 20l6-6"/>',
     results: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/>',
+    laporan: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><circle cx="12" cy="14" r="2.6"/><path d="M10.6 16.2 10 20l2-1 2 1-.6-3.8"/>',
     print: '<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/>',
     display: '<rect x="2" y="4" width="20" height="13" rx="2.5"/><path d="M8 21h8M12 17v4"/>',
     settings: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M2.5 12h3M18.5 12h3M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
@@ -36,7 +37,7 @@
 
   const NAV = [
     ['dashboard', false], ['daftar', 'public'], ['peserta', false], ['kontingen', true], ['athletes', true], ['registration', true], ['announcements', true], ['events', true], ['stroke', true], ['fairway', true],
-    ['results', false], ['print', false], ['display', true], ['settings', true], ['backup', true],
+    ['results', false], ['laporan', false], ['print', false], ['display', true], ['settings', true], ['backup', true],
   ];
 
   App.route = () => {
