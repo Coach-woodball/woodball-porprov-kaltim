@@ -413,7 +413,7 @@
   }
   const titleCase = (s) => String(s || '').toLowerCase().replace(/(^|[\s.\/(-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
 
-  // Desain piagam F4 lanskap: panel hijau tua di kiri, stempel peringkat, maskot di kiri bawah, isi terpusat.
+  // Desain piagam A4 lanskap: panel hijau tua di kiri, stempel peringkat, maskot di kiri bawah, isi terpusat.
   function certPage(c) {
     const E = App.S.event;
     const nomor = c.type === 'juara' ? c.ev.name : c.type === 'peserta' ? c.evs.map((e) => e.name).join(', ') : '';
@@ -431,13 +431,13 @@
     const pill = c.type === 'juara' ? ['Nomor Pertandingan', c.ev.name] : c.type === 'peserta' ? ['Nomor Pertandingan', nomor] : ['Peran', c.role || 'Official'];
     const signers = E.signers || [];
     const sign = (s) => `<div class="c3-sg"><div class="c3-role">${esc(s ? s.title : '')}</div><div class="c3-nm">${esc(s ? s.name : '') || '&nbsp;'}</div></div>`;
-    return `<section class="page cert3 ${tier}">
-      <svg class="c3-band" viewBox="0 0 1248 813" preserveAspectRatio="none" aria-hidden="true">
+    return `<section class="page cert3 ${tier}"><div class="c3-canvas">
+      <svg class="c3-band" viewBox="0 0 1150 813" preserveAspectRatio="none" aria-hidden="true">
         <polygon points="0,0 220,0 220,150 168,202 168,813 0,813" fill="#0f3d26"/>
         <polygon points="0,0 120,0 120,180 80,220 80,813 0,813" fill="#17603a"/>
         <polyline points="236,0 236,156 184,208 184,813" fill="none" stroke="#b38a2e" stroke-width="2"/>
-        <polyline points="252,22 1190,22 1226,58 1226,791 252,791" fill="none" stroke="#0f3d26" stroke-width="2.5"/>
-        <polyline points="262,31 1185,31 1217,63 1217,782 262,782" fill="none" stroke="#b38a2e" stroke-width="1"/>
+        <polyline points="252,22 1092,22 1128,58 1128,791 252,791" fill="none" stroke="#0f3d26" stroke-width="2.5"/>
+        <polyline points="262,31 1087,31 1119,63 1119,782 262,782" fill="none" stroke="#b38a2e" stroke-width="1"/>
       </svg>
       ${seal}
       <img class="c3-mascot" src="img/maskot-taka.png" alt="">
@@ -456,7 +456,7 @@
           <div class="c3-mid">${qrSvg(verifyUrl(c.no))}<div><b>${esc(E.city)},</b>${esc(App.fmtDate(opts.date || App.today()))}<br><span>Pindai untuk verifikasi</span></div></div>
           <div class="c3-signs">${signers.map(sign).join('')}</div></div>
       </div>
-    </section>`;
+    </div></section>`;
   }
 
   function certPages(ev) {
@@ -659,7 +659,7 @@
             <div class="spacer"></div>
             <button class="btn" id="pr-go">🖨️ Cetak / Simpan PDF</button>
           </div>
-          <p class="muted small">Di dialog cetak pilih <b>Simpan sebagai PDF</b> atau printer, ukuran ${doc === 'certificates' ? '<b>F4 / Folio (330 × 215 mm)</b>' : '<b>A4</b>'}, orientasi <b>Lanskap</b>, margin <b>Default/Tidak ada</b>, dan centang <b>Grafis latar belakang</b>.</p>
+          <p class="muted small">Di dialog cetak pilih <b>Simpan sebagai PDF</b> atau printer, ukuran ${'<b>A4</b>'}, orientasi <b>Lanskap</b>, margin <b>Default/Tidak ada</b>, dan centang <b>Grafis latar belakang</b>.</p>
         </div>
         ${doc === 'certificates' ? `<p class="muted small no-print">Kode QR di sertifikat membuka halaman verifikasi. Cetak dari alamat online (Vercel) agar kode QR bisa dipindai dari HP mana saja.</p>` : ''}
         <div class="print-area${printBw() ? ' bw' : ''}">${needEv && !ev && doc !== 'certificates' ? '<p class="c no-print">Pilih nomor terlebih dahulu.</p>' : buildPages(doc, p)}</div>`;

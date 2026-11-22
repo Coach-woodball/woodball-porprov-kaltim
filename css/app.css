@@ -902,13 +902,14 @@ td.name select.swap.dup { border-color: var(--accent); background: color-mix(in 
 .mr-st.draw { color: #1d4f91; background: #e4eefb; }
 .print-area.bw .mr-st.draw { border-style: dotted !important; }
 
-/* ---------- piagam: F4 lanskap 330 × 215 mm, desain 1248 × 813 px (1 px = 1/96 inci) ---------- */
+/* ---------- piagam: A4 lanskap 297 × 210 mm; kanvas desain 1150 × 813 px diperkecil 0,9766 agar pas 1123 × 794 px ---------- */
 .page.cert3 {
-  page: f4; width: 330mm; height: 215mm; min-height: 0; padding: 0; position: relative; overflow: hidden; box-sizing: border-box; background: #fff;
+  width: 297mm; height: 210mm; min-height: 0; padding: 0; position: relative; overflow: hidden; box-sizing: border-box; background: #fff;
   font-family: Poppins, "Segoe UI", Arial, sans-serif; color: #17231b;
   --c3-forest: #0f3d26; --c3-green: #17603a; --c3-gold: #b38a2e; --c3-gold-lt: #e3c878; --c3-wine: #8f1d1d;
 }
 .page.cert3 * { box-sizing: border-box; }
+.c3-canvas { position: absolute; left: 0; top: 0; width: 1150px; height: 813px; transform: scale(0.97663); transform-origin: 0 0; }
 .c3-band { position: absolute; inset: 0; width: 100%; height: 100%; }
 .c3-seal { position: absolute; left: 112px; top: 214px; width: 200px; height: 200px; filter: drop-shadow(0 5px 8px rgba(0, 0, 0, .22)); }
 .c3-mascot { position: absolute; left: 22px; bottom: 26px; height: 262px; width: auto; max-width: none; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .28)); }
