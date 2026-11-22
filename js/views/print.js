@@ -430,7 +430,6 @@
     const region = E.region || 'KALIMANTAN TIMUR';
     const pill = c.type === 'juara' ? ['Nomor Pertandingan', c.ev.name] : c.type === 'peserta' ? ['Nomor Pertandingan', nomor] : ['Peran', c.role || 'Official'];
     const signers = E.signers || [];
-    const half = Math.ceil(signers.length / 2);
     const sign = (s) => `<div class="c3-sg"><div class="c3-role">${esc(s ? s.title : '')}</div><div class="c3-nm">${esc(s ? s.name : '') || '&nbsp;'}</div></div>`;
     return `<section class="page cert3 ${tier}">
       <svg class="c3-band" viewBox="0 0 1248 813" preserveAspectRatio="none" aria-hidden="true">
@@ -453,9 +452,9 @@
         <div class="c3-k">Kontingen ${esc(App.kName(c.kontingenId))}</div>
         <div class="c3-body">${body.split('\n').map((l) => `<span>${esc(l)}</span>`).join('')}</div>
         <div class="c3-pill"><small>${esc(pill[0])}</small><b>${esc(pill[1])}</b></div>
-        <div class="c3-foot">${signers.slice(0, half).map(sign).join('')}
+        <div class="c3-foot">
           <div class="c3-mid">${qrSvg(verifyUrl(c.no))}<div><b>${esc(E.city)},</b>${esc(App.fmtDate(opts.date || App.today()))}<br><span>Pindai untuk verifikasi</span></div></div>
-          ${signers.slice(half).map(sign).join('')}</div>
+          <div class="c3-signs">${signers.map(sign).join('')}</div></div>
       </div>
     </section>`;
   }

@@ -934,10 +934,12 @@ td.name select.swap.dup { border-color: var(--accent); background: color-mix(in 
 .c3-pill small { display: block; font-size: 11.5px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--c3-gold-lt); }
 .c3-pill b { display: block; font-size: 24px; font-weight: 700; letter-spacing: 1px; margin-top: 1px; text-transform: uppercase; }
 .c3-foot { margin-top: auto; width: 100%; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
-.c3-sg { flex: 1; text-align: center; min-width: 0; }
+/* QR di kiri bawah, tanda tangan rata kanan (gaya surat resmi). */
+.c3-signs { flex: 1; min-width: 0; display: flex; justify-content: flex-end; gap: 40px; }
+.c3-sg { flex: 0 1 330px; text-align: center; min-width: 0; }
 .c3-role { font-size: 14px; color: #3a463d; height: 102px; }
 .c3-nm { display: inline-block; min-width: 300px; max-width: 100%; border-top: 1.2px solid #17231b; padding: 6px 10px 0; font-size: 16px; font-weight: 700; }
-.c3-mid { flex: none; width: 220px; display: flex; align-items: center; justify-content: center; gap: 12px; }
+.c3-mid { flex: none; display: flex; align-items: center; gap: 12px; padding-left: 8px; }
 .c3-mid svg { width: 70px; height: 70px; display: block; flex: none; }
 .c3-mid div { text-align: left; font-size: 12px; line-height: 1.45; color: #3a463d; }
 .c3-mid b { display: block; font-size: 12.5px; color: #17231b; font-weight: 600; }
