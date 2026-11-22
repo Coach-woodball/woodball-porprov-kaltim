@@ -785,6 +785,8 @@ table.team-gates td.tsub { color: var(--muted); }
 .tm-lbl { white-space: nowrap; width: 1%; }
 .tm-lbl small { display: block; color: var(--muted); }
 .tm-gs { white-space: nowrap; color: var(--muted); width: 1%; }
+input.tm-q { width: 58px; min-height: 0; height: 32px; padding: 2px 4px; text-align: center; font-weight: 700; font-size: .95rem; }
+input.tm-q:placeholder-shown { border-style: dashed; }
 .tm-foot { display: flex; justify-content: space-between; align-items: center; }
 label.tm-edit { display: inline-flex; flex-direction: row; align-items: center; gap: 4px; font-size: .75rem; color: var(--muted); text-transform: none; font-weight: 600; }
 label.tm-edit input.tiny { width: 54px; padding: 2px 6px; min-height: 0; height: 26px; }

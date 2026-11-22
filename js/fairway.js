@@ -33,6 +33,12 @@
 
   Fw.gameResult = (ev, game) => {
     const N = ev.config.gates || 12;
+    // Input cepat: hanya hasil akhir (gate dimenangkan), mis. 6-2, tanpa skor per gate.
+    if (Array.isArray(game.quick)) {
+      const [qa, qb] = game.quick;
+      const w = game.override === 'a' || game.override === 'b' ? game.override : qa > qb ? 'a' : 'b';
+      return { pa: qa, pb: qb, even: 0, played: qa + qb, remaining: 0, winner: w, sd: null, status: 'done', quick: true };
+    }
     let pa = 0, pb = 0, played = 0, even = 0;
     for (let i = 0; i < N; i++) {
       const [x, y] = game.gates[i] || [];
@@ -56,6 +62,21 @@
       if (winner === 'a') pa++; else if (winner === 'b') pb++;
     }
     return { pa, pb, even, played, remaining, winner, sd, status };
+  };
+
+  // Isi hasil cepat dari teks "6-2" (urutan sesuai tampilan; flip = sisi kanan adalah a). Kosong = hapus. Mengembalikan pesan galat bila tidak sah.
+  Fw.setQuick = (ev, game, text, flip) => {
+    const t = String(text || '').trim();
+    if (!t) { delete game.quick; return null; }
+    const mm = t.match(/^(\d{1,2})\s*[-–:./ ]\s*(\d{1,2})$/);
+    if (!mm) return 'Format hasil: angka-angka, mis. 6-2';
+    let [x, y] = [+mm[1], +mm[2]];
+    if (flip) [x, y] = [y, x];
+    const N = ev.config.gates || 12;
+    if (x === y) return 'Hasil tidak boleh seri. Pemenang sudden death mendapat +1 (mis. 6-5).';
+    if (x + y > N + 1) return `Total ${x + y} melebihi ${N} gate.`;
+    game.quick = [x, y];
+    return null;
   };
 
   // Resolusi peserta di sisi a/b (bisa dari pemenang/kalah pertandingan sebelumnya).

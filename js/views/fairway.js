@@ -58,7 +58,9 @@
           const lane = g.lane || m.lane;
           const sc = gr.status && gr.status !== 'none' ? (x === 'a' ? gr.pa + '-' + gr.pb : gr.pb + '-' + gr.pa) : '';
           return `<tr><td class="tm-lbl"><b>${esc(g.label)}</b>${edit ? `<label class="tm-edit">Lap. <input class="tiny" data-tm-lane="${m.id}:${gi}" value="${esc(g.lane || '')}" placeholder="${esc(m.lane || '')}"></label>` : lane ? `<small>Lap. ${esc(lane)}</small>` : ''}</td>
-            <td class="${gr.winner === x ? 'win' : ''}">${cell(x, g)}</td><td class="c tm-gs">${sc || 'vs'}</td>
+            <td class="${gr.winner === x ? 'win' : ''}">${cell(x, g)}</td><td class="c tm-gs">${edit && can
+              ? `<input class="tm-q" data-tm-q="${m.id}:${gi}:${x === 'b' ? 1 : 0}" value="${sc}" placeholder="6-2" inputmode="text" maxlength="5" title="Hasil cepat (gate dimenangkan), mis. 6-2. Kosongkan untuk menghapus.">`
+              : sc || 'vs'}</td>
             <td class="${gr.winner === y ? 'win' : ''}">${cell(y, g)}</td></tr>`;
         }).join('')}</tbody></table>
         <div class="tm-foot">${App.ui.statusPill(r.status)}${can ? `<a class="btn sm" href="#/match/${ev.id}/${m.id}">Input</a>` : ''}</div>
@@ -222,6 +224,23 @@
         Fw.match(ev, mid).games[+gi].lane = inp.value.trim();
         App.save();
       }));
+      // Hasil cepat per partai (mis. 6-2): simpan, render ulang (bagan ikut maju), lalu lompat ke kotak berikutnya.
+      const qInputs = [...root.querySelectorAll('[data-tm-q]')];
+      qInputs.forEach((inp, idx) => {
+        inp.addEventListener('focus', () => inp.select());
+        const apply = (move) => {
+          const [mid, gi, flip] = inp.dataset.tmQ.split(':');
+          const g = Fw.match(ev, mid).games[+gi];
+          const before = JSON.stringify(g.quick || null);
+          const err = Fw.setQuick(ev, g, inp.value, flip === '1');
+          if (err) { App.toast(err, 'err'); inp.focus(); return; }
+          const next = move ? qInputs[idx + 1]?.dataset.tmQ : null;
+          if (JSON.stringify(g.quick || null) !== before) App.commit();
+          if (next) root.querySelector(`[data-tm-q="${next}"]`)?.focus();
+        };
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); apply(true); } });
+        inp.addEventListener('change', () => apply(false));
+      });
       const hasScores = () => d.matches.some((m) => Fw.matchResult(ev, m).status === 'done' || Fw.matchResult(ev, m).status === 'live');
       root.querySelectorAll('[data-ggen]').forEach((b) => b.addEventListener('click', async () => {
         if (d.groups.length && !(await App.ask(hasScores() ? 'PERHATIAN: sudah ada skor. Undi ulang akan MENGHAPUS semua pertandingan grup & skornya. Lanjut?' : 'Undi ulang grup?'))) return;
@@ -314,11 +333,12 @@
     const nameA = Fw.gamePlayers(ev, r.a, g, m), nameB = Fw.gamePlayers(ev, r.b, g, m);
     return `<div class="card game" data-gi="${gi}">
       <div class="row between wrap"><h3>${g.label ? esc(g.label) + ' · ' : ''}<span data-gres="${gi}">${gr.pa} - ${gr.pb}</span> ${App.ui.statusPill(gr.status)}</h3>
-        <div class="row gap wrap">${ev.kind === 'team' ? `<label class="mini">Lapangan<input class="tiny" data-glane="${gi}" value="${esc(g.lane || '')}" placeholder="${esc(m.lane || '')}"></label>` : ''}
+        <div class="row gap wrap"><label class="mini">Hasil cepat<input class="tiny" data-gq="${gi}" value="${g.quick ? g.quick.join('-') : ''}" placeholder="6-2"></label>${ev.kind === 'team' ? `<label class="mini">Lapangan<input class="tiny" data-glane="${gi}" value="${esc(g.lane || '')}" placeholder="${esc(m.lane || '')}"></label>` : ''}
         <label class="mini">Pemenang manual / WO<select data-gov="${gi}">${App.ui.options([['', 'Otomatis dari skor'], ['a', 'Menang: ' + nameA], ['b', 'Menang: ' + nameB]], g.override || '')}</select></label></div></div>
       <div class="table-wrap"><table class="score"><thead><tr><th class="name">Nama</th>${Array.from({ length: N }, (_, i) => `<th>${i + 1}</th>`).join('')}${Array.from({ length: extraN }, (_, i) => `<th class="sdc">PK${i + 1}</th>`).join('')}</tr></thead>
       <tbody><tr><td class="name"><b>${esc(nameA)}</b><small>${esc(App.kShort(App.entry(r.a)?.kontingenId))}</small></td>${cells(0)}</tr>
       <tr><td class="name"><b>${esc(nameB)}</b><small>${esc(App.kShort(App.entry(r.b)?.kontingenId))}</small></td>${cells(1)}</tr></tbody></table></div>
+      ${g.quick ? `<p class="small"><span class="pill warn">Hasil cepat ${g.quick.join('-')}</span> dipakai sebagai hasil partai ini; skor per gate di bawah diabaikan. Kosongkan "Hasil cepat" untuk memakai skor per gate.</p>` : ''}
       <p class="muted small">Isi jumlah pukulan tiap gate. Pukulan lebih sedikit = menang gate (nilai 1). PK = sudden death setelah gate ${N}. Pertandingan otomatis selesai jika sudah tidak terkejar.</p>
       ${App.ui.scanBlock(g.scans, String(gi))}
     </div>`;
@@ -354,6 +374,11 @@
       root.querySelectorAll('[data-mf]').forEach((inp) => inp.addEventListener('change', () => { m[inp.dataset.mf] = inp.value; App.save(); }));
       root.querySelector('[data-mov]')?.addEventListener('change', (e) => { m.override = e.target.value || null; App.commit(); });
       root.querySelectorAll('[data-glane]').forEach((inp) => inp.addEventListener('change', () => { m.games[+inp.dataset.glane].lane = inp.value.trim(); App.save(); }));
+      root.querySelectorAll('[data-gq]').forEach((inp) => inp.addEventListener('change', () => {
+        const err = Fw.setQuick(ev, m.games[+inp.dataset.gq], inp.value, false);
+        if (err) return App.toast(err, 'err');
+        App.commit();
+      }));
       root.querySelectorAll('[data-gov]').forEach((sel) => sel.addEventListener('change', () => { m.games[+sel.dataset.gov].override = sel.value || null; App.commit(); }));
       // Urutan isi: gate per gate (pemain 1 lalu pemain 2), sesuai cara wasit mencatat.
       const keyOf = (inp) => {
