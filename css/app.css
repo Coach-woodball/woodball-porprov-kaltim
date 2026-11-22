@@ -928,11 +928,11 @@ td.name select.swap.dup { border-color: var(--accent); background: color-mix(in 
 .c3-no b { font-weight: 600; color: #17231b; }
 .c3-intro { margin-top: 26px; font-size: 16px; color: #3a463d; }
 .c3-name { font-family: "Kaushan Script", "Brush Script MT", cursive; font-size: 66px; line-height: 1.25; color: var(--c3-green); padding: 0 40px 2px; border-bottom: 1.5px solid var(--c3-gold); white-space: nowrap; }
-.c3-k { margin-top: 16px; font-size: 18px; font-weight: 700; letter-spacing: 2.4px; color: var(--c3-wine); text-transform: uppercase; }
+.c3-k { margin-top: 16px; font-size: 17px; font-weight: 700; letter-spacing: 2.4px; color: var(--c3-wine); text-transform: uppercase; }
 .c3-body { margin-top: 18px; color: #2f3b33; max-width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.c3-body .c3-lead { display: block; white-space: nowrap; font-size: 20px; font-weight: 600; color: #17231b; letter-spacing: .2px; }
-.c3-body .c3-line { display: block; white-space: nowrap; font-size: 18px; line-height: 1.55; }
-.c3-body .c3-lead + .c3-line { margin-top: 2px; }
+.c3-body .c3-lead { display: block; white-space: nowrap; font-size: 23px; font-weight: 600; color: #17231b; letter-spacing: .2px; }
+.c3-body .c3-line { display: block; white-space: nowrap; font-size: 20px; line-height: 1.6; }
+.c3-body .c3-lead + .c3-line { margin-top: 4px; }
 .c3-pill { margin-top: 20px; min-width: 440px; max-width: 100%; padding: 9px 34px 11px; border-radius: 10px; color: #fff; background: var(--c3-forest); border: 1.5px solid var(--c3-gold); }
 .c3-pill small { display: block; font-size: 11.5px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--c3-gold-lt); }
 .c3-pill b { display: block; white-space: nowrap; font-size: 24px; font-weight: 700; letter-spacing: 1px; margin-top: 1px; text-transform: uppercase; }
@@ -940,7 +940,7 @@ td.name select.swap.dup { border-color: var(--accent); background: color-mix(in 
 /* QR di kiri bawah, tanda tangan rata kanan (gaya surat resmi). */
 .c3-signs { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-end; }
 .c3-signrow { display: flex; justify-content: flex-end; gap: 40px; width: 100%; }
-.c3-date { width: 330px; text-align: center; font-size: 16px; color: #17231b; margin-bottom: 2px; }
+.c3-date { width: 330px; text-align: center; font-size: 15px; color: #17231b; margin-bottom: 2px; }
 .c3-sg { flex: 0 1 330px; text-align: center; min-width: 0; }
 .c3-role { font-size: 16px; color: #3a463d; height: 102px; }
 .c3-nm { display: inline-block; min-width: 300px; max-width: 100%; border-top: 1.2px solid #17231b; padding: 6px 10px 0; font-size: 16px; font-weight: 700; }

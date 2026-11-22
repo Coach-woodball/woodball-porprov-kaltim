@@ -688,8 +688,12 @@
         const max = pg.querySelector('.c3-content').clientWidth;
         const fitEl = (el, start, min, lim = max) => { if (!el) return; let s = start; el.style.fontSize = s + 'px'; while (s > min && el.scrollWidth > lim) el.style.fontSize = (s -= 1) + 'px'; };
         fitEl(pg.querySelector('.c3-name'), 66, 36);
-        pg.querySelectorAll('.c3-body .c3-lead').forEach((sp) => fitEl(sp, 20, 12));
-        pg.querySelectorAll('.c3-body .c3-line').forEach((sp) => fitEl(sp, 18, 11));
+        pg.querySelectorAll('.c3-body .c3-lead').forEach((sp) => fitEl(sp, 23, 13));
+        // Semua baris keterangan memakai satu ukuran (ukuran terkecil yang muat) agar seragam.
+        const lines = [...pg.querySelectorAll('.c3-body .c3-line')];
+        lines.forEach((sp) => fitEl(sp, 20, 12));
+        const fs = Math.min(...lines.map((sp) => parseFloat(sp.style.fontSize) || 20));
+        lines.forEach((sp) => (sp.style.fontSize = fs + 'px'));
       });
       shrink();
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => area.isConnected && shrink());
