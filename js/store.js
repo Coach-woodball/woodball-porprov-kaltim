@@ -68,8 +68,16 @@
       certPartBody: 'Sebagai PESERTA Nomor {nomor} pada Cabang Olahraga Woodball\n',
       certOfficialBody: 'Sebagai {peran} Kontingen {kontingen} pada Cabang Olahraga Woodball\n',
     };
+    // Versi satu paragraf ("... Tahun 2026, yang diselenggarakan ...") diganti ke versi 3 baris.
+    const PREV_TAIL = 'pada Cabang Olahraga Woodball dalam ajang Pekan Olahraga Provinsi (PORPROV) VIII Kalimantan Timur Tahun 2026, yang diselenggarakan pada tanggal {tanggal}.';
+    const PREV_PARA = { certBody: 'Sebagai Juara {romawi} (Medali {medali})\nNomor {nomor} ', certPartBody: 'Sebagai Peserta\nNomor {nomor} ', certOfficialBody: 'Sebagai {peran} Kontingen {kontingen}\n' };
     Object.keys(PREV_CERT).forEach((k) => {
       if (['PEKAN OLAHRAGA PROVINSI (PORPROV) KALTIM VIII TAHUN 2026', 'PEKAN OLAHRAGA PROVINSI (PORPROV) VIII KALIMANTAN TIMUR TAHUN 2026'].some((t) => s.event[k] === PREV_CERT[k] + t)) s.event[k] = d.event[k];
+      if (s.event[k] === PREV_PARA[k] + PREV_TAIL) s.event[k] = d.event[k];
+    });
+    // Penanda tangan piagam: jabatan & penulisan nama resmi (diminta panitia, 22 Nov 2026).
+    (s.event.signers || []).forEach((sg) => {
+      if (sg && sg.title === 'Technical Delegate' && sg.name === 'H. HASBAR, S.Pd, M.Pd') Object.assign(sg, { title: 'Ketua IWbA Kalimantan Timur', name: 'H. Hasbar, S.Pd., M.Pd.' });
     });
     s.menu = Object.assign({}, d.menu, s.menu || {});
     s.validation = Object.assign({}, d.validation, s.validation || {});

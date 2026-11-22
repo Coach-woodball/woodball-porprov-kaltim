@@ -449,7 +449,7 @@
         <div class="c3-intro">${esc(E.certIntro)}</div>
         <div class="c3-name">${esc(titleCase(c.name))}</div>
         <div class="c3-k">Kontingen ${esc(App.kName(c.kontingenId))}</div>
-        <div class="c3-body">${body.split('\n').map((l, i) => `<span class="${i ? 'c3-wrap' : 'c3-lead'}">${esc(l)}</span>`).join('')}</div>
+        <div class="c3-body">${body.split('\n').map((l, i) => `<span class="${i ? 'c3-line' : 'c3-lead'}">${esc(l)}</span>`).join('')}</div>
         <div class="c3-foot">
           <div class="c3-mid">${qrSvg(verifyUrl(c.no))}<span>Pindai untuk verifikasi</span></div>
           <div class="c3-signs"><div class="c3-date">${esc(E.city)}, ${esc(App.fmtDate(opts.date || App.today()))}</div><div class="c3-signrow">${signers.map(sign).join('')}</div></div></div>
@@ -688,7 +688,8 @@
         const max = pg.querySelector('.c3-content').clientWidth;
         const fitEl = (el, start, min, lim = max) => { if (!el) return; let s = start; el.style.fontSize = s + 'px'; while (s > min && el.scrollWidth > lim) el.style.fontSize = (s -= 1) + 'px'; };
         fitEl(pg.querySelector('.c3-name'), 66, 36);
-        pg.querySelectorAll('.c3-body .c3-lead').forEach((sp) => fitEl(sp, 17, 11));
+        pg.querySelectorAll('.c3-body .c3-lead').forEach((sp) => fitEl(sp, 20, 12));
+        pg.querySelectorAll('.c3-body .c3-line').forEach((sp) => fitEl(sp, 18, 11));
       });
       shrink();
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => area.isConnected && shrink());
