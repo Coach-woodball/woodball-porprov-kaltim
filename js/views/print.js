@@ -382,6 +382,38 @@
     return q.createSvgTag({ cellSize: 2, margin: 0, scalable: true });
   };
 
+  // Stempel bulat: semua teks mengikuti lingkaran yang sama (pusat 100,100) agar lengkungnya presisi.
+  const SEAL = {
+    gold: { c1: '#f3d98b', c2: '#a8801f', tx: '#4a3600' },
+    silver: { c1: '#f1f3f5', c2: '#8b959f', tx: '#353d45' },
+    bronze: { c1: '#eebd94', c2: '#93572a', tx: '#46240c' },
+    part: { c1: '#cfe9d6', c2: '#17603a', tx: '#0b2e1c' },
+    off: { c1: '#f2c9c9', c2: '#8f1d1d', tx: '#4a0d0d' },
+  };
+  let sealSeq = 0;
+  function sealSvg(tier, big, top, bot) {
+    const s = SEAL[tier], C = 100, id = 'sl' + (++sealSeq);
+    const arc = (r, up) => `M ${C - r} ${C} A ${r} ${r} 0 0 ${up ? 1 : 0} ${C + r} ${C}`;
+    const f = (n) => n.toFixed(2);
+    const star = (cx) => { let p = ''; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 2.25 : 5; p += `${f(cx + r * Math.cos(a))},${f(C + r * Math.sin(a))} `; } return `<polygon points="${p}" fill="${s.tx}"/>`; };
+    let teeth = '';
+    for (let i = 0; i < 48; i++) { const a = i * Math.PI / 24, b = a + Math.PI / 48; teeth += `${f(C + 99 * Math.cos(a))},${f(C + 99 * Math.sin(a))} ${f(C + 91 * Math.cos(b))},${f(C + 91 * Math.sin(b))} `; }
+    const size = /^[0-9]$/.test(big) ? 66 : 46;
+    return `<svg class="c3-seal" viewBox="0 0 200 200" aria-hidden="true"><defs>
+      <radialGradient id="${id}g" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#fff" stop-opacity=".85"/><stop offset=".4" stop-color="${s.c1}"/><stop offset="1" stop-color="${s.c2}"/></radialGradient>
+      <path id="${id}t" d="${arc(65, true)}"/><path id="${id}b" d="${arc(76, false)}"/></defs>
+      <polygon points="${teeth}" fill="${s.c2}"/>
+      <circle cx="${C}" cy="${C}" r="88" fill="url(#${id}g)"/>
+      <circle cx="${C}" cy="${C}" r="83" fill="none" stroke="${s.tx}" stroke-width="1.4" opacity=".75"/>
+      <circle cx="${C}" cy="${C}" r="50" fill="none" stroke="${s.tx}" stroke-width="2"/>
+      <text font-family="Poppins, Arial" font-weight="700" font-size="15" letter-spacing="4" fill="${s.tx}"><textPath href="#${id}t" startOffset="50%" text-anchor="middle">${esc(top)}</textPath></text>
+      <text font-family="Poppins, Arial" font-weight="600" font-size="11" letter-spacing="2" fill="${s.tx}"><textPath href="#${id}b" startOffset="50%" text-anchor="middle">${esc(bot)}</textPath></text>
+      ${star(C - 68)}${star(C + 68)}
+      <text x="${C}" y="${C}" dy="3" text-anchor="middle" dominant-baseline="central" font-family="Poppins, Arial" font-weight="800" font-size="${size}" fill="${s.tx}">${esc(big)}</text></svg>`;
+  }
+  const titleCase = (s) => String(s || '').toLowerCase().replace(/(^|[\s.\/(-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
+
+  // Desain piagam F4 lanskap: panel hijau tua di kiri, stempel peringkat, maskot di kiri bawah, isi terpusat.
   function certPage(c) {
     const E = App.S.event;
     const nomor = c.type === 'juara' ? c.ev.name : c.type === 'peserta' ? c.evs.map((e) => e.name).join(', ') : '';
@@ -392,29 +424,40 @@
     }[k] ?? `{${k}}`));
     const body = fill(c.type === 'juara' ? E.certBody : c.type === 'peserta' ? E.certPartBody : E.certOfficialBody);
     const tier = c.type === 'juara' ? TIER[c.rank] : c.type === 'peserta' ? 'part' : 'off';
-    const badge = c.type === 'juara' ? `Juara ${c.rank} · Medali ${App.MEDAL[c.rank]}` : c.type === 'peserta' ? 'Peserta' : c.role;
+    const seal = c.type === 'juara' ? sealSvg(tier, String(c.rank), 'JUARA', 'MEDALI ' + App.MEDAL[c.rank].toUpperCase())
+      : sealSvg(tier, c.type === 'peserta' ? '✓' : '★', c.type === 'peserta' ? 'PESERTA' : 'OFFICIAL', E.shortName.replace(/\s*\bKALTIM\b\s*/i, ' '));
     const logos = (E.logos || []).map((id) => App.files.url(id)).filter(Boolean);
-    // Desain kaca F4: satu panel kaca di atas latar bercahaya hijau-merah; lencana bulat hanya untuk peringkat juara.
-    return `<section class="page cert2 ${tier}"><div class="c2-card">
-      <div class="c2-head">
-        ${logos.length ? `<div class="c2-logos">${logos.map((u) => `<img src="${u}" alt="">`).join('')}</div>` : '<div></div>'}
-        <div class="c2-org">Cabang Olahraga ${esc(E.sport)}<br>${esc(E.shortName)}</div>
+    const region = E.region || 'KALIMANTAN TIMUR';
+    const pill = c.type === 'juara' ? ['Nomor Pertandingan', c.ev.name] : c.type === 'peserta' ? ['Nomor Pertandingan', nomor] : ['Peran', c.role || 'Official'];
+    const signers = E.signers || [];
+    const half = Math.ceil(signers.length / 2);
+    const sign = (s) => `<div class="c3-sg"><div class="c3-role">${esc(s ? s.title : '')}</div><div class="c3-nm">${esc(s ? s.name : '') || '&nbsp;'}</div></div>`;
+    return `<section class="page cert3 ${tier}">
+      <svg class="c3-band" viewBox="0 0 1248 813" preserveAspectRatio="none" aria-hidden="true">
+        <polygon points="0,0 220,0 220,150 168,202 168,813 0,813" fill="#0f3d26"/>
+        <polygon points="0,0 120,0 120,180 80,220 80,813 0,813" fill="#17603a"/>
+        <polyline points="236,0 236,156 184,208 184,813" fill="none" stroke="#b38a2e" stroke-width="2"/>
+        <polyline points="252,22 1190,22 1226,58 1226,791 252,791" fill="none" stroke="#0f3d26" stroke-width="2.5"/>
+        <polyline points="262,31 1185,31 1217,63 1217,782 262,782" fill="none" stroke="#b38a2e" stroke-width="1"/>
+      </svg>
+      ${seal}
+      <img class="c3-mascot" src="img/maskot-taka.png" alt="">
+      <div class="c3-content">
+        <div class="c3-kop">${logos.length ? `<div class="c3-logos">${logos.map((u) => `<img src="${u}" alt="">`).join('')}</div>` : ''}
+          <div class="c3-kt"><b>${esc(E.shortName.replace(/\bKALTIM\b/i, region))}</b><i>Cabang ${esc(E.sport)} ${esc(region)}</i></div></div>
+        <div class="c3-title">${esc(c.type === 'juara' ? E.certTitle : 'SERTIFIKAT')}</div>
+        <div class="c3-rule"><span></span></div>
+        <div class="c3-no">Nomor : <b>${esc(c.no)}</b></div>
+        <div class="c3-intro">${esc(E.certIntro)}</div>
+        <div class="c3-name">${esc(titleCase(c.name))}</div>
+        <div class="c3-k">Kontingen ${esc(App.kName(c.kontingenId))}</div>
+        <div class="c3-body">${body.split('\n').map((l) => `<span>${esc(l)}</span>`).join('')}</div>
+        <div class="c3-pill"><small>${esc(pill[0])}</small><b>${esc(pill[1])}</b></div>
+        <div class="c3-foot">${signers.slice(0, half).map(sign).join('')}
+          <div class="c3-mid">${qrSvg(verifyUrl(c.no))}<div><b>${esc(E.city)},</b>${esc(App.fmtDate(opts.date || App.today()))}<br><span>Pindai untuk verifikasi</span></div></div>
+          ${signers.slice(half).map(sign).join('')}</div>
       </div>
-      <div class="c2-mid">
-        <div class="c2-top"><div class="c2-who">
-          <div class="c2-title">${esc(E.certTitle)}</div>
-          <div class="c2-intro">${esc(E.certIntro)}</div>
-          <div class="c2-name">${esc(c.name)}</div>
-          <div class="c2-k">Kontingen ${esc(App.kName(c.kontingenId))}</div>
-        </div>${c.type === 'juara' ? `<div class="c2-medal-ring"><b>${c.rank}</b><span>${esc(App.MEDAL[c.rank])}</span></div>` : ''}</div>
-        <div class="c2-tags"><span class="c2-chip c2-role">${esc(badge)}</span>${c.type === 'juara' ? `<span class="c2-chip">${esc(c.ev.name)}</span>` : ''}</div>
-        <p class="c2-body">${esc(body).replace(/\n/g, '<br>')}</p>
-      </div>
-      <div class="c2-foot">
-        <div class="c2-signs"><div class="c2-date">${signDate()}</div><div class="c2-signrow">${E.signers.map((s) => signBox(s.title, s.name)).join('')}</div></div>
-        <div class="c2-qr">${qrSvg(verifyUrl(c.no))}<div><b>Pindai untuk verifikasi</b>No. ${esc(c.no)}</div></div>
-      </div>
-    </div></section>`;
+    </section>`;
   }
 
   function certPages(ev) {
@@ -583,8 +626,10 @@
   App.views.print = {
     render(params, solo) {
       let doc = DOCS[params[0]] ? params[0] : 'result';
+      const MEDAL_DOCS = ['medalreport', 'medals'];
       if (doc === 'certificates' && !App.isAdmin()) doc = 'result'; // sertifikat hanya dicetak admin
-      const docs = Object.entries(DOCS).filter(([k]) => k !== 'certificates' || App.isAdmin());
+      if (MEDAL_DOCS.includes(doc) && !App.showResults()) doc = 'result'; // dokumen medali tertutup untuk umum
+      const docs = Object.entries(DOCS).filter(([k]) => (k !== 'certificates' || App.isAdmin()) && (!MEDAL_DOCS.includes(k) || App.showResults()));
       const p = params.slice(1);
       const ev = App.event(p[0]);
       const needEv = !['medals', 'medalreport', 'athletes'].includes(doc);
@@ -641,13 +686,24 @@
       };
       fit();
       window.addEventListener('resize', fit);
+      // Piagam: nama, kalimat, dan nomor yang panjang dikecilkan agar tetap satu baris.
+      const shrink = () => area.querySelectorAll('.page.cert3').forEach((pg) => {
+        const max = pg.querySelector('.c3-content').clientWidth;
+        const fitEl = (el, start, min) => { if (!el) return; let s = start; el.style.fontSize = s + 'px'; while (s > min && el.scrollWidth > max) el.style.fontSize = (s -= 1) + 'px'; };
+        fitEl(pg.querySelector('.c3-name'), 66, 36);
+        pg.querySelectorAll('.c3-body span').forEach((sp) => fitEl(sp, 15.5, 10));
+        fitEl(pg.querySelector('.c3-pill b'), 24, 13);
+      });
+      shrink();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => area.isConnected && shrink());
     },
   };
 
   // Menu khusus Laporan Medali: halaman cetak laporan resmi tanpa pilihan dokumen lain.
   App.views.laporan = {
-    render: () => `<h2>${esc(App.S.menu.laporan)}</h2>` + App.views.print.render(['medalreport'], true),
-    mount: (root) => App.views.print.mount(root, ['medalreport']),
+    render: () => (App.showResults() ? `<h2>${esc(App.S.menu.laporan)}</h2>` + App.views.print.render(['medalreport'], true)
+      : `<div class="card"><h2>${esc(App.S.menu.laporan)}</h2><p class="muted">Laporan perolehan medali belum dibuka untuk umum.</p></div>`),
+    mount: (root) => { if (App.showResults()) App.views.print.mount(root, ['medalreport']); },
   };
 
   // Halaman verifikasi dari kode QR sertifikat.

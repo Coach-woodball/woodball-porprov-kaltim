@@ -95,6 +95,7 @@
       const S = App.S, E = S.event;
       if (!App.isAdmin() && E.dateStart && App.today() < E.dateStart) return preEvent();
       const warns = App.isAdmin() ? App.validate() : [];
+      const show = App.showResults();
       const { rows } = App.medalTally();
       const evRows = S.events.map((ev) => {
         const n = App.entriesOf(ev.id).length;
@@ -108,8 +109,9 @@
         const pl = App.placements(ev);
         const champ = pl.list.find((p) => p.rank === 1);
         const link = App.isAdmin() ? `#/${ev.discipline}/${ev.id}` : `#/results/${ev.id}`;
-        return `<tr><td><a href="${link}">${esc(ev.name)}</a></td><td class="c">${n}</td><td>${prog}</td>
-          <td>${champ ? '🥇 ' + esc(App.entryLabel(App.entry(champ.entryId))) + (pl.final ? '' : ' <small class="muted">(sementara)</small>') : '<span class="muted">-</span>'}</td></tr>`;
+        const nm = show ? `<a href="${link}">${esc(ev.name)}</a>` : esc(ev.name);
+        return `<tr><td>${nm}</td><td class="c">${n}</td><td>${prog}</td>
+          ${show ? `<td>${champ ? '🥇 ' + esc(App.entryLabel(App.entry(champ.entryId))) + (pl.final ? '' : ' <small class="muted">(sementara)</small>') : '<span class="muted">-</span>'}</td>` : ''}</tr>`;
       }).join('');
       return `
         <section class="hero card">
@@ -131,10 +133,10 @@
         ${App.isAdmin() ? '' : quoteHtml('card day-quote')}
         ${App.isAdmin() || !annItems().length ? '' : annBoard()}
         <div class="card"><h2>Progres Pertandingan</h2>
-          <div class="table-wrap"><table><thead><tr><th>Nomor</th><th>Entri</th><th>Progres</th><th>Juara 1</th></tr></thead><tbody>${evRows}</tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Nomor</th><th>Entri</th><th>Progres</th>${show ? '<th>Juara 1</th>' : ''}</tr></thead><tbody>${evRows}</tbody></table></div>
         </div>
-        <div class="card"><h2>Klasemen Medali</h2>${medalTable(rows.filter((r) => r.total > 0).slice(0, 10))}
-          <p><a href="#/results">Lihat lengkap →</a></p></div>`;
+        ${show ? `<div class="card"><h2>Klasemen Medali</h2>${medalTable(rows.filter((r) => r.total > 0).slice(0, 10))}
+          <p><a href="#/results">Lihat lengkap →</a></p></div>` : ''}`;
     },
   };
 

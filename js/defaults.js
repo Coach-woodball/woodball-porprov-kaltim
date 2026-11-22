@@ -116,9 +116,9 @@
       resultSigner: { title: 'Technical Delegate', name: 'H. HASBAR, S.Pd, M.Pd' },
       certTitle: 'PIAGAM PENGHARGAAN',
       certIntro: 'Diberikan kepada :',
-      certBody: 'Sebagai JUARA {juara} ({medali}) Nomor {nomor} pada Cabang Olahraga Woodball\nPEKAN OLAHRAGA PROVINSI (PORPROV) KALTIM VIII TAHUN 2026',
-      certPartBody: 'Sebagai PESERTA Nomor {nomor} pada Cabang Olahraga Woodball\nPEKAN OLAHRAGA PROVINSI (PORPROV) KALTIM VIII TAHUN 2026',
-      certOfficialBody: 'Sebagai {peran} Kontingen {kontingen} pada Cabang Olahraga Woodball\nPEKAN OLAHRAGA PROVINSI (PORPROV) KALTIM VIII TAHUN 2026',
+      certBody: 'Sebagai JUARA {juara} ({medali}) Nomor {nomor} pada Cabang Olahraga Woodball\nPEKAN OLAHRAGA PROVINSI (PORPROV) VIII KALIMANTAN TIMUR TAHUN 2026',
+      certPartBody: 'Sebagai PESERTA Nomor {nomor} pada Cabang Olahraga Woodball\nPEKAN OLAHRAGA PROVINSI (PORPROV) VIII KALIMANTAN TIMUR TAHUN 2026',
+      certOfficialBody: 'Sebagai {peran} Kontingen {kontingen} pada Cabang Olahraga Woodball\nPEKAN OLAHRAGA PROVINSI (PORPROV) VIII KALIMANTAN TIMUR TAHUN 2026',
       certNumber: '{no}/WB-PORPROV/XI/2026',
       themeColor: '#16a34a',
       accentColor: '#dc2626',
@@ -139,7 +139,7 @@
     registration: App.reg.defaults(),
     registrations: [],
     announcements: [],
-    publicPages: { peserta: false }, // halaman umum yang dibuka admin
+    publicPages: { peserta: false, hasil: false }, // halaman umum yang dibuka admin
     kontingen: App.defaultKontingen(),
     athletes: [],
     events: App.defaultEvents(),

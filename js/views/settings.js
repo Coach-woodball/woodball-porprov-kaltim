@@ -46,7 +46,8 @@
       </div>
 
       <div class="card"><h3>Halaman umum</h3><p class="muted">Atur halaman yang bisa dilihat pengunjung tanpa login.</p>
-        <label class="chk"><input type="checkbox" data-setb="publicPages.peserta" ${App.S.publicPages.peserta ? 'checked' : ''}> Tampilkan menu ${esc(App.S.menu.peserta || 'List Peserta')} untuk umum</label></div>
+        <label class="chk"><input type="checkbox" data-setb="publicPages.peserta" ${App.S.publicPages.peserta ? 'checked' : ''}> Tampilkan menu ${esc(App.S.menu.peserta || 'List Peserta')} untuk umum</label>
+        <label class="chk"><input type="checkbox" data-setb="publicPages.hasil" ${App.S.publicPages.hasil ? 'checked' : ''}> Tampilkan hasil, klasemen &amp; medali untuk umum <small class="muted">(menu ${esc(App.S.menu.results || 'Hasil & Medali')}, ${esc(App.S.menu.laporan || 'Laporan Medali')}, klasemen di Beranda, dan dokumen medali di Cetak PDF)</small></label></div>
 
       <div class="card"><h3>Label Menu</h3><div class="grid4">${Object.entries(App.S.menu).map(([k, v]) => field('menu.' + k, k, v)).join('')}</div></div>
 

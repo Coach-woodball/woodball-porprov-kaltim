@@ -2,6 +2,8 @@
 (function (App) {
   App.views = {};
   App.isAdmin = () => sessionStorage.getItem('wb-admin') === '1';
+  // Hasil, klasemen & medali untuk pengunjung umum hanya tampil bila dibuka admin di Pengaturan.
+  App.showResults = () => App.isAdmin() || !!(App.S.publicPages || {}).hasil;
 
   const ICON = {
     dashboard: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -58,7 +60,8 @@
     // Menu Pendaftaran umum hanya tampil selama formulir dibuka.
     const regOpen = (App.S.registration || {}).open !== false;
     // List Peserta untuk umum hanya tampil kalau dibuka admin (admin selalu melihatnya).
-    const hidden = (key) => (key === 'daftar' && !regOpen) || (key === 'peserta' && !admin && !App.S.publicPages.peserta);
+    const hidden = (key) => (key === 'daftar' && !regOpen) || (key === 'peserta' && !admin && !App.S.publicPages.peserta)
+      || (['results', 'laporan'].includes(key) && !App.showResults());
     const nav = NAV.filter(([key, adm]) => !hidden(key) && (adm === 'public' ? !admin : admin || !adm)).map(([key]) =>
       `<a href="${key === 'daftar' ? 'daftar.html' : '#/' + key}" class="${routeName === key ? 'active' : ''}">${App.icon(key)}<span>${App.esc(App.S.menu[key] || key)}</span></a>`).join('');
     const th = App.theme();

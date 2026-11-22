@@ -42,6 +42,7 @@
 
   App.views.results = {
     render(params) {
+      if (!App.showResults()) return `<div class="card"><h2>${esc(App.S.menu.results || 'Hasil & Medali')}</h2><p class="muted">Hasil, klasemen, dan perolehan medali belum dibuka untuk umum. Silakan pantau pengumuman resmi panitia.</p></div>`;
       const ev = App.event(params[0]);
       const tabs = `<div class="tabs"><a href="#/results" class="${!ev ? 'active' : ''}">🏅 Medali</a>${App.S.events.map((e) => `<a href="#/results/${e.id}" class="${ev && e.id === ev.id ? 'active' : ''}">${esc(e.name)}</a>`).join('')}</div>`;
       if (ev) {

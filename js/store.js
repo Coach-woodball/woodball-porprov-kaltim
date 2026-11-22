@@ -62,6 +62,8 @@
       certOfficialBody: 'Sebagai {peran} Kontingen {kontingen} pada Cabang Olahraga Woodball {event} yang dilaksanakan pada tanggal {tanggal} di {kota}.',
     };
     Object.keys(OLD_CERT).forEach((k) => { if (s.event[k] === OLD_CERT[k]) s.event[k] = d.event[k]; });
+    // Teks bawaan lama menyingkat KALTIM; ganti ke KALIMANTAN TIMUR bila belum diubah admin.
+    ['certBody', 'certPartBody', 'certOfficialBody'].forEach((k) => { if (typeof s.event[k] === 'string' && s.event[k].endsWith('\nPEKAN OLAHRAGA PROVINSI (PORPROV) KALTIM VIII TAHUN 2026')) s.event[k] = s.event[k].replace('(PORPROV) KALTIM VIII TAHUN', '(PORPROV) VIII KALIMANTAN TIMUR TAHUN'); });
     s.menu = Object.assign({}, d.menu, s.menu || {});
     s.validation = Object.assign({}, d.validation, s.validation || {});
     ['kontingen', 'athletes', 'events', 'entries'].forEach((k) => (s[k] = s[k] || d[k]));
@@ -71,7 +73,7 @@
     s.registration = App.reg.publicSettings(s.registration);
     s.registrations = s.registrations || [];
     s.announcements = s.announcements || [];
-    s.publicPages = Object.assign({ peserta: false }, s.publicPages || {});
+    s.publicPages = Object.assign({ peserta: false, hasil: false }, s.publicPages || {});
     // OB tidak dipakai lagi: buang dari urutan tie-break.
     s.events.forEach((e) => { if (Array.isArray(e.config?.tiebreak)) e.config.tiebreak = e.config.tiebreak.filter((k) => k !== "ob"); });
     return s;
