@@ -702,7 +702,7 @@
 
   // Menu khusus Laporan Medali: halaman cetak laporan resmi tanpa pilihan dokumen lain.
   App.views.laporan = {
-    render: () => (App.showResults() ? `<h2>${esc(App.S.menu.laporan)}</h2>` + App.views.print.render(['medalreport'], true)
+    render: () => (App.showResults() ? `<h2 class="no-print">${esc(App.S.menu.laporan)}</h2>` + App.views.print.render(['medalreport'], true)
       : `<div class="card"><h2>${esc(App.S.menu.laporan)}</h2><p class="muted">Laporan perolehan medali belum dibuka untuk umum.</p></div>`),
     mount: (root) => { if (App.showResults()) App.views.print.mount(root, ['medalreport']); },
   };
