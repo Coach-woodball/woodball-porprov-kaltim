@@ -62,8 +62,15 @@
       certOfficialBody: 'Sebagai {peran} Kontingen {kontingen} pada Cabang Olahraga Woodball {event} yang dilaksanakan pada tanggal {tanggal} di {kota}.',
     };
     Object.keys(OLD_CERT).forEach((k) => { if (s.event[k] === OLD_CERT[k]) s.event[k] = d.event[k]; });
-    // Teks bawaan lama menyingkat KALTIM; ganti ke KALIMANTAN TIMUR bila belum diubah admin.
-    ['certBody', 'certPartBody', 'certOfficialBody'].forEach((k) => { if (typeof s.event[k] === 'string' && s.event[k].endsWith('\nPEKAN OLAHRAGA PROVINSI (PORPROV) KALTIM VIII TAHUN 2026')) s.event[k] = s.event[k].replace('(PORPROV) KALTIM VIII TAHUN', '(PORPROV) VIII KALIMANTAN TIMUR TAHUN'); });
+    // Teks bawaan versi sebelumnya (KALTIM / huruf kapital) diganti ke kalimat resmi terbaru bila belum diubah admin.
+    const PREV_CERT = {
+      certBody: 'Sebagai JUARA {juara} ({medali}) Nomor {nomor} pada Cabang Olahraga Woodball\n',
+      certPartBody: 'Sebagai PESERTA Nomor {nomor} pada Cabang Olahraga Woodball\n',
+      certOfficialBody: 'Sebagai {peran} Kontingen {kontingen} pada Cabang Olahraga Woodball\n',
+    };
+    Object.keys(PREV_CERT).forEach((k) => {
+      if (['PEKAN OLAHRAGA PROVINSI (PORPROV) KALTIM VIII TAHUN 2026', 'PEKAN OLAHRAGA PROVINSI (PORPROV) VIII KALIMANTAN TIMUR TAHUN 2026'].some((t) => s.event[k] === PREV_CERT[k] + t)) s.event[k] = d.event[k];
+    });
     s.menu = Object.assign({}, d.menu, s.menu || {});
     s.validation = Object.assign({}, d.validation, s.validation || {});
     ['kontingen', 'athletes', 'events', 'entries'].forEach((k) => (s[k] = s[k] || d[k]));

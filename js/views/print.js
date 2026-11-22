@@ -419,8 +419,8 @@
     const nomor = c.type === 'juara' ? c.ev.name : c.type === 'peserta' ? c.evs.map((e) => e.name).join(', ') : '';
     const fill = (t) => (t || '').replace(/\{(\w+)\}/g, (_, k) => ({
       nama: c.name, kontingen: App.kName(c.kontingenId), nomor, peran: (c.role || '').toUpperCase(),
-      juara: c.rank ? String(c.rank) : '', medali: c.rank ? App.MEDAL[c.rank] : '', event: E.title,
-      tanggal: App.fmtDateRange(E.dateStart, E.dateEnd), kota: E.city,
+      juara: c.rank ? String(c.rank) : '', romawi: c.rank ? ['', 'I', 'II', 'III'][c.rank] || String(c.rank) : '', medali: c.rank ? App.MEDAL[c.rank] : '', event: E.title,
+      tanggal: App.fmtDateRange(E.dateStart, E.dateEnd).replace(/(\d) - (\d)/, '$1–$2'), kota: E.city,
     }[k] ?? `{${k}}`));
     const body = fill(c.type === 'juara' ? E.certBody : c.type === 'peserta' ? E.certPartBody : E.certOfficialBody);
     const tier = c.type === 'juara' ? TIER[c.rank] : c.type === 'peserta' ? 'part' : 'off';
@@ -428,7 +428,6 @@
       : sealSvg(tier, c.type === 'peserta' ? '✓' : '★', c.type === 'peserta' ? 'PESERTA' : 'OFFICIAL', E.shortName.replace(/\s*\bKALTIM\b\s*/i, ' '));
     const logos = (E.logos || []).map((id) => App.files.url(id)).filter(Boolean);
     const region = E.region || 'KALIMANTAN TIMUR';
-    const pill = c.type === 'juara' ? ['Nomor Pertandingan', c.ev.name] : c.type === 'peserta' ? ['Nomor Pertandingan', nomor] : ['Peran', c.role || 'Official'];
     const signers = E.signers || [];
     const sign = (s) => `<div class="c3-sg"><div class="c3-role">${esc(s ? s.title : '')}</div><div class="c3-nm">${esc(s ? s.name : '') || '&nbsp;'}</div></div>`;
     return `<section class="page cert3 ${tier}"><div class="c3-canvas">
@@ -443,18 +442,17 @@
       <img class="c3-mascot" src="img/maskot-taka.png" alt="">
       <div class="c3-content">
         <div class="c3-kop">${logos.length ? `<div class="c3-logos">${logos.map((u) => `<img src="${u}" alt="">`).join('')}</div>` : ''}
-          <div class="c3-kt"><b>${esc(E.shortName.replace(/\bKALTIM\b/i, region))}</b><i>Cabang ${esc(E.sport)} ${esc(region)}</i></div></div>
+          <div class="c3-kt"><b>${esc(E.shortName.replace(/\bKALTIM\b/i, region))}</b></div></div>
         <div class="c3-title">${esc(c.type === 'juara' ? E.certTitle : 'SERTIFIKAT')}</div>
         <div class="c3-rule"><span></span></div>
         <div class="c3-no">Nomor : <b>${esc(c.no)}</b></div>
         <div class="c3-intro">${esc(E.certIntro)}</div>
         <div class="c3-name">${esc(titleCase(c.name))}</div>
         <div class="c3-k">Kontingen ${esc(App.kName(c.kontingenId))}</div>
-        <div class="c3-body">${body.split('\n').map((l) => `<span>${esc(l)}</span>`).join('')}</div>
-        <div class="c3-pill"><small>${esc(pill[0])}</small><b>${esc(pill[1])}</b></div>
+        <div class="c3-body">${body.split('\n').map((l, i) => `<span class="${i ? 'c3-wrap' : 'c3-lead'}">${esc(l)}</span>`).join('')}</div>
         <div class="c3-foot">
-          <div class="c3-mid">${qrSvg(verifyUrl(c.no))}<div><b>${esc(E.city)},</b>${esc(App.fmtDate(opts.date || App.today()))}<br><span>Pindai untuk verifikasi</span></div></div>
-          <div class="c3-signs">${signers.map(sign).join('')}</div></div>
+          <div class="c3-mid">${qrSvg(verifyUrl(c.no))}<span>Pindai untuk verifikasi</span></div>
+          <div class="c3-signs"><div class="c3-date">${esc(E.city)}, ${esc(App.fmtDate(opts.date || App.today()))}</div><div class="c3-signrow">${signers.map(sign).join('')}</div></div></div>
       </div>
     </div></section>`;
   }
@@ -688,10 +686,9 @@
       // Piagam: nama, kalimat, dan nomor yang panjang dikecilkan agar tetap satu baris.
       const shrink = () => area.querySelectorAll('.page.cert3').forEach((pg) => {
         const max = pg.querySelector('.c3-content').clientWidth;
-        const fitEl = (el, start, min) => { if (!el) return; let s = start; el.style.fontSize = s + 'px'; while (s > min && el.scrollWidth > max) el.style.fontSize = (s -= 1) + 'px'; };
+        const fitEl = (el, start, min, lim = max) => { if (!el) return; let s = start; el.style.fontSize = s + 'px'; while (s > min && el.scrollWidth > lim) el.style.fontSize = (s -= 1) + 'px'; };
         fitEl(pg.querySelector('.c3-name'), 66, 36);
-        pg.querySelectorAll('.c3-body span').forEach((sp) => fitEl(sp, 15.5, 10));
-        fitEl(pg.querySelector('.c3-pill b'), 24, 13);
+        pg.querySelectorAll('.c3-body .c3-lead').forEach((sp) => fitEl(sp, 17, 11));
       });
       shrink();
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => area.isConnected && shrink());

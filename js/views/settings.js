@@ -37,7 +37,7 @@
       </div>
 
       <div class="card"><h3>Teks Sertifikat</h3>
-        <p class="muted small">Kode yang bisa dipakai: <code>{nama}</code> <code>{kontingen}</code> <code>{nomor}</code> <code>{juara}</code> (I/II/III) <code>{medali}</code> <code>{event}</code> <code>{tanggal}</code> <code>{kota}</code></p>
+        <p class="muted small">Kode yang bisa dipakai: <code>{nama}</code> <code>{kontingen}</code> <code>{nomor}</code> <code>{juara}</code> (1/2/3) <code>{romawi}</code> (I/II/III) <code>{medali}</code> <code>{event}</code> <code>{tanggal}</code> <code>{kota}</code></p>
         <div class="grid3">${field('event.certTitle', 'Judul', E.certTitle)}${field('event.certIntro', 'Kalimat pembuka', E.certIntro)}</div>
         <label>Isi (juara)<textarea data-set="event.certBody" rows="3">${esc(E.certBody)}</textarea></label>
         <label>Isi (peserta)<textarea data-set="event.certPartBody" rows="3">${esc(E.certPartBody)}</textarea></label>
