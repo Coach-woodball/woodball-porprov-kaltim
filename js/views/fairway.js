@@ -59,7 +59,7 @@
           const sc = gr.status && gr.status !== 'none' ? (x === 'a' ? gr.pa + '-' + gr.pb : gr.pb + '-' + gr.pa) : '';
           return `<tr><td class="tm-lbl"><b>${esc(g.label)}</b>${edit ? `<label class="tm-edit">Lap. <input class="tiny" data-tm-lane="${m.id}:${gi}" value="${esc(g.lane || '')}" placeholder="${esc(m.lane || '')}"></label>` : lane ? `<small>Lap. ${esc(lane)}</small>` : ''}</td>
             <td class="${gr.winner === x ? 'win' : ''}">${cell(x, g)}</td><td class="c tm-gs">${edit && can
-              ? `<input class="tm-q" data-tm-q="${m.id}:${gi}:${x === 'b' ? 1 : 0}" value="${sc}" placeholder="6-2" inputmode="text" maxlength="5" title="Hasil cepat (gate dimenangkan), mis. 6-2. Kosongkan untuk menghapus.">`
+              ? `<input class="tm-q" data-tm-q="${m.id}:${gi}:${x === 'b' ? 1 : 0}" value="${sc}" placeholder="–" inputmode="text" maxlength="5" title="Hasil cepat (gate dimenangkan), mis. 6-2. Kosongkan untuk menghapus.">`
               : sc || 'vs'}</td>
             <td class="${gr.winner === y ? 'win' : ''}">${cell(y, g)}</td></tr>`;
         }).join('')}</tbody></table>
