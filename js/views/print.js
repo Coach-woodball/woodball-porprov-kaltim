@@ -2,7 +2,7 @@
 // Cetak lewat dialog browser -> pilih "Simpan sebagai PDF" atau printer.
 (function (App) {
   const esc = App.esc, St = App.stroke, Fw = App.fairway;
-  const opts = { filled: true, date: '', certType: 'juara', layout: 'sheet', bw: null };
+  const opts = { filled: true, date: '', certType: 'juara', certK: '', layout: 'sheet', bw: null };
   // Hitam putih mengikuti mode angka gate di layar sampai dipilih sendiri di halaman cetak.
   const printBw = () => (opts.bw ?? App.scoreMode() === 'neutral');
 
@@ -306,7 +306,7 @@
       const pl = Fw.placements(ev).list;
       const d = Fw.data(ev);
       body = `<table class="pt"><thead><tr><th>Peringkat</th><th>Nama</th><th>Kab/Kota</th><th>Medali</th></tr></thead><tbody>
-        ${pl.filter((p) => p.rank <= 4).map((p) => { const e = App.entry(p.entryId); return `<tr><td class="c">${p.rank}</td><td>${esc(App.entryName(e))}${ev.kind === 'team' ? `<br><small>${e.members.filter(Boolean).map(App.athName).map(esc).join(', ')}</small>` : ''}</td><td>${esc(App.kName(e?.kontingenId))}</td><td>${medalOf(p.rank)}</td></tr>`; }).join('') || '<tr><td colspan="4" class="c">Belum ada hasil</td></tr>'}</tbody></table>`;
+        ${pl.filter((p) => p.rank <= 4).map((p) => { const e = App.entry(p.entryId); return `<tr><td class="c">${p.rank}</td><td>${esc(App.entryName(e))}${ev.kind === 'team' ? `<br><small>${e.members.concat(e.extra || []).filter(Boolean).map(App.athName).map(esc).join(', ')}</small>` : ''}</td><td>${esc(App.kName(e?.kontingenId))}</td><td>${medalOf(p.rank)}</td></tr>`; }).join('') || '<tr><td colspan="4" class="c">Belum ada hasil</td></tr>'}</tbody></table>`;
       if (d.groups.length) body += d.groups.map((g) => `<h4>Grup ${esc(g.name)}</h4>${standingsPrint(ev, g)}`).join('');
       const ko = Fw.koMatches(ev);
       if (ko.length) body += `<h4>Hasil pertandingan bagan</h4>${matchesPrint(ev, ko)}`;
@@ -367,6 +367,13 @@
       if (evs.length) out.push({ type: 'peserta', evs, name: at.name, kontingenId: at.kontingenId, athleteId: at.id });
     });
     App.S.kontingen.forEach((k) => (k.officials || []).forEach((o) => out.push({ type: 'official', role: o.role, name: o.name, kontingenId: k.id })));
+    // Pemain tambahan tim (tidak ikut skor) ditaruh paling akhir agar nomor piagam yang sudah dicetak tidak bergeser.
+    App.S.events.filter((ev) => ev.kind === 'team').forEach((ev) => {
+      App.placements(ev).list.filter((p) => p.rank <= 3).sort((x, y) => x.rank - y.rank).forEach((p) => {
+        const en = App.entry(p.entryId);
+        (en?.extra || []).filter((aid) => aid && App.athlete(aid)).forEach((aid) => out.push({ type: 'juara', ev, rank: p.rank, name: App.athName(aid), kontingenId: en.kontingenId, athleteId: aid }));
+      });
+    });
     out.forEach((c, i) => (c.no = certNo(i + 1)));
     return out;
   };
@@ -429,7 +436,10 @@
     const logos = (E.logos || []).map((id) => App.files.url(id)).filter(Boolean);
     const region = E.region || 'KALIMANTAN TIMUR';
     const signers = E.signers || [];
-    const sign = (s) => `<div class="c3-sg"><div class="c3-role">${esc(s ? s.title : '')}</div><div class="c3-nm">${esc(s ? s.name : '') || '&nbsp;'}</div></div>`;
+    // TTD + stempel Ketua IWbA Kalimantan Timur (gambar dari panitia).
+    const ttd = (s) => (s && /iwba/i.test(s.title)
+      ? '<img class="c3-ttd" src="img/ttd-ketua-iwba.png" alt="">' : '');
+    const sign = (s) => `<div class="c3-sg">${ttd(s)}<div class="c3-role">${esc(s ? s.title : '')}</div><div class="c3-nm">${esc(s ? s.name : '') || '&nbsp;'}</div></div>`;
     return `<section class="page cert3 ${tier}"><div class="c3-canvas">
       <svg class="c3-band" viewBox="0 0 1150 813" preserveAspectRatio="none" aria-hidden="true">
         <polygon points="0,0 220,0 220,150 168,202 168,813 0,813" fill="#0f3d26"/>
@@ -460,6 +470,7 @@
   function certPages(ev) {
     const t = opts.certType;
     const list = App.certList().filter((c) => (t === 'semua' || c.type === t)
+      && (!opts.certK || c.kontingenId === opts.certK)
       && (!ev || (c.type === 'juara' && c.ev.id === ev.id) || (c.type === 'peserta' && c.evs.some((e) => e.id === ev.id))));
     return list.map(certPage).join('') || `<section class="page">${kop('SERTIFIKAT')}<p class="c">${t === 'official' ? 'Belum ada official/pelatih. Tambahkan di menu Kontingen.' : 'Belum ada penerima sertifikat untuk pilihan ini.'}</p></section>`;
   }
@@ -652,7 +663,8 @@
             ${extra}
             <select id="pr-color" title="Warna cetakan">${App.ui.options([['color', 'Warna'], ['bw', 'Hitam putih']], printBw() ? 'bw' : 'color')}</select>
             ${doc.startsWith('scorecard') ? `<label class="chk"><input type="checkbox" id="pr-filled" ${opts.filled ? 'checked' : ''}> Isi skor</label>` : ''}
-            ${doc === 'certificates' ? `<select id="pr-ctype">${App.ui.options([['juara', 'Juara (1-3)'], ['peserta', 'Peserta'], ['official', 'Official & pelatih'], ['semua', 'Semua']], opts.certType)}</select>` : ''}
+            ${doc === 'certificates' ? `<select id="pr-ctype">${App.ui.options([['juara', 'Juara (1-3)'], ['peserta', 'Peserta'], ['official', 'Official & pelatih'], ['semua', 'Semua']], opts.certType)}</select>
+              <select id="pr-ck" title="Kabupaten / Kota"><option value="">Semua kab/kota</option>${App.ui.options(App.S.kontingen.map((k) => [k.id, k.name]), opts.certK)}</select>` : ''}
             ${['result', 'medals', 'medalreport', 'certificates'].includes(doc) ? `<label class="mini">Tanggal tanda tangan<input type="date" id="pr-date" value="${opts.date || App.today()}"></label>` : ''}
             <div class="spacer"></div>
             <button class="btn" id="pr-go">🖨️ Cetak / Simpan PDF</button>
@@ -672,6 +684,7 @@
       root.querySelector('#pr-filled')?.addEventListener('change', (e) => { opts.filled = e.target.checked; App.rerender(); });
       root.querySelector('#pr-color').addEventListener('change', (e) => { opts.bw = e.target.value === 'bw'; App.rerender(); });
       root.querySelector('#pr-ctype')?.addEventListener('change', (e) => { opts.certType = e.target.value; App.rerender(); });
+      root.querySelector('#pr-ck')?.addEventListener('change', (e) => { opts.certK = e.target.value; App.rerender(); });
       root.querySelector('#pr-date')?.addEventListener('change', (e) => { opts.date = e.target.value; App.rerender(); });
       root.querySelector('#pr-go').addEventListener('click', () => window.print());
       // Perkecil pratinjau agar halaman A4 muat di layar (tidak memengaruhi hasil cetak).

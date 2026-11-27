@@ -110,7 +110,10 @@
     };
     const slotNames = ev.discipline === 'fairway' && ev.kind === 'team' ? ev.config.slots : null;
     const members = Array.from({ length: ev.members }, (_, s) => `<label class="mini">${slotNames ? esc(slotNames[s]) : ev.gender === 'X' && ev.kind === 'double' ? (s === 0 ? 'Putra' : 'Putri') : 'Pemain ' + (s + 1)}
-      <select data-member="${e.id}:${s}">${opts(e.members[s], s)}</select></label>`).join('');
+      <select data-member="${e.id}:${s}">${opts(e.members[s], s)}</select></label>`).join('')
+      // Tim: satu pemain tambahan (tidak ikut skor), ikut mendapat piagam juara.
+      + (ev.kind === 'team' ? `<label class="mini" title="Tidak ikut perhitungan skor; ikut mendapat piagam bila timnya juara">Pemain tambahan
+      <select data-extra="${e.id}">${opts((e.extra || [])[0], 0)}</select></label>` : '');
     return `<tr><td class="c">${i + 1}</td><td><select data-ek="${e.id}">${App.ui.kontingenOptions(e.kontingenId)}</select></td>
       <td><div class="members">${members}</div></td><td><button class="btn sm danger" data-edel="${e.id}">Hapus</button></td></tr>`;
   }
@@ -213,6 +216,10 @@
       const [eid, s] = sel.dataset.member.split(':');
       App.entry(eid).members[+s] = sel.value || null;
       App.stroke.syncTeamGroups(ev); // pairing Team Stroke ikut berganti pemain
+      App.commit();
+    }));
+    root.querySelectorAll('[data-extra]').forEach((sel) => sel.addEventListener('change', () => {
+      App.entry(sel.dataset.extra).extra = sel.value ? [sel.value] : [];
       App.commit();
     }));
     root.querySelectorAll('[data-edel]').forEach((b) => b.addEventListener('click', async () => {

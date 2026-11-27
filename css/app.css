@@ -943,7 +943,10 @@ td.name select.swap.dup { border-color: var(--accent); background: color-mix(in 
 .c3-signs { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-end; }
 .c3-signrow { display: flex; justify-content: flex-end; gap: 40px; width: 100%; }
 .c3-date { width: 330px; text-align: center; font-size: 15px; color: #17231b; margin-bottom: 2px; }
-.c3-sg { flex: 0 1 330px; text-align: center; min-width: 0; }
+.c3-sg { flex: 0 1 330px; text-align: center; min-width: 0; position: relative; }
+/* TTD + stempel (satu gambar dari panitia), di atas garis nama. */
+.c3-ttd { position: absolute; left: 50%; top: 22px; width: 228px; transform: translateX(-50%); mix-blend-mode: multiply; pointer-events: none; z-index: 1; }
+.c3-sg .c3-nm { position: relative; z-index: 2; }
 .c3-role { font-size: 16px; color: #3a463d; height: 102px; }
 .c3-nm { display: inline-block; min-width: 300px; max-width: 100%; border-top: 1.2px solid #17231b; padding: 6px 10px 0; font-size: 16px; font-weight: 700; }
 .c3-mid { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-left: 8px; }

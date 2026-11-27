@@ -79,6 +79,28 @@
     (s.event.signers || []).forEach((sg) => {
       if (sg && sg.title === 'Technical Delegate' && sg.name === 'H. HASBAR, S.Pd, M.Pd') Object.assign(sg, { title: 'Ketua IWbA Kalimantan Timur', name: 'H. Hasbar, S.Pd., M.Pd.' });
     });
+    // Penyesuaian dengan Berita Acara TD (22 Nov 2026), sekali jalan: tanggal mulai 17 Nov dan pemain tambahan tim Kukar.
+    s.fixes = s.fixes || [];
+    if (!s.fixes.includes('ba-2026-11-22')) {
+      s.fixes.push('ba-2026-11-22');
+      if (s.event.dateStart === '2026-11-18') s.event.dateStart = '2026-11-17';
+      const kukar = (s.kontingen || []).find((k) => /kutai kartanegara/i.test(k.name));
+      const norm = (n) => String(n || '').toUpperCase().replace(/\s+/g, ' ').trim();
+      const ath = (name, gender) => {
+        let a = (s.athletes || []).find((x) => norm(x.name) === name && x.kontingenId === kukar.id);
+        if (!a) { a = { id: 'a_ba_' + name.split(' ').pop().toLowerCase(), name, gender, kontingenId: kukar.id, events: [] }; s.athletes.push(a); }
+        return a;
+      };
+      if (kukar && s.athletes && s.entries) [
+        ['TS-PA', 'M. INDAKA PIA RAMADHAN', 'L'], ['TF-PA', 'MUHAMMAD AIDIL KURNIAWAN', 'L'],
+        ['TS-PI', 'HUSNUL KHATIMAH', 'P'], ['TF-PI', 'ANDINA AZZAHRA', 'P'],
+      ].forEach(([evId, name, g]) => {
+        const en = s.entries.find((e) => e.eventId === evId && e.kontingenId === kukar.id);
+        if (!en || (en.extra || []).length) return;
+        const a = ath(name, g);
+        if (!en.members.includes(a.id)) en.extra = [a.id];
+      });
+    }
     s.menu = Object.assign({}, d.menu, s.menu || {});
     s.validation = Object.assign({}, d.validation, s.validation || {});
     ['kontingen', 'athletes', 'events', 'entries'].forEach((k) => (s[k] = s[k] || d[k]));
